@@ -62,3 +62,7 @@
 /* 커서: 반전 화면 안 입력칸은 뒤집힌 뒤 진한 잉크(#1a1626)가 되게 미리 거꾸로 정한 색, 보통 화면은 잉크 */
 :root[data-iphone] .app5-in, :root[data-iphone] input, :root[data-iphone] textarea { caret-color: #1a1626; }
 :root[data-iphone] .scr.dark .app5-in, :root[data-iphone] .scr.dark input, :root[data-iphone] .scr.dark textarea { caret-color: #E9E5F5; }
+/* 8 · 발산 ↔ 홈 전환: main 이 매 프레임 홈 · 발산 화면 조각 수십 개의 투명도를 바꾼다 → 조각마다 미리 제 판(레이어)으로 올려 두면 투명도 변화는 다시 그리지 않고 합성만 (그림 결과 같음) */
+:root[data-iphone] #scr-H1 > .fig > *, :root[data-iphone] #scr-D1 > .fig > * { will-change: opacity; }
+/* 10 · 화면 넘김 · 조작: 화면 87장이 한 문서라 한 화면의 변화도 다른 화면 배치 확인을 부름 → 화면마다 안쪽 변화는 밖에 영향 없음(contain). 화면 = 폰 크기라 보이는 것 같음 */
+:root[data-iphone] #screens > .scr { contain: layout paint style; }
