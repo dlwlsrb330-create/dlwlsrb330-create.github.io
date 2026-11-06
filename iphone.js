@@ -5,7 +5,7 @@
 // ④ 개발자 판(오른쪽 위 모서리 1초 길게 누르기) · FPS 숫자
 // COMET.build · APP5.init 바로 앞에서 읽히고, 화면이 다 만들어진 뒤(DOMContentLoaded) 일을 시작한다.
 (() => {
-  const W = 390, H0 = 844;
+  const W = 390, H0 = 844, SB_H = 54;   // SB_H: 디자인의 가짜 상태 표시줄 높이 (statusbar.js #sbar)
   const root = document.documentElement, $ = (id) => document.getElementById(id);
   const PH = window.PH = { s: 1, h: H0, extra: 0, safeTop: 0, safeBottom: 0 };
   const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
@@ -14,14 +14,17 @@
   const probe = document.createElement("div");
   probe.style.cssText = "position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)";
   function fit() {
-    // 홈 화면 앱(standalone)은 화면 전체를 쓰는데 iOS 가 처음 열 때 innerHeight 를 짧게 주는 일이 있어 화면 크기(screen)도 같이 본다
-    const vw = innerWidth, vh = navigator.standalone ? Math.max(innerHeight, screen.height) : innerHeight;
-    let s = vw / W, h = vh / s, x = 0;   // 402 → 1.0308 · 874 / 1.0308 ≈ 848
-    if (h < H0) { s = vh / H0; h = H0; x = (vw - W * s) / 2; }   // 디자인보다 짧은 화면(사파리 주소창 등): 아래를 끌어올리지 않고 높이에 맞춰 통째로 줄임, 좌우는 바탕색
-    PH.s = s; PH.h = h; PH.extra = h - H0; PH.x = x;
-    root.style.setProperty("--ph-x", x.toFixed(2) + "px");
-    root.style.setProperty("--ph-vh", vh + "px");   // 페이지 상자도 화면 끝까지 (iOS 가 준 짧은 높이에서 잘리지 않게)
+    // 상태 표시줄은 iOS 기본 방식(apple-mobile-web-app-status-bar-style=default): iOS 가 시계 · 배터리 줄을 앱 위에 따로 그리고, 앱은 그 아래만 받는다.
+    //   (투명 black-translucent 는 iOS 26 홈 화면 앱에서 아래 63pt 를 앱이 못 써서 잘렸음)
+    //   그래서 페이지가 상태 표시줄 밑으로 안 들어가면(safe-area-inset-top ≈ 0) 디자인 맨 위 가짜 상태 표시줄 자리(TOP 54)를 위로 밀어 숨긴다
     if (probe.isConnected) { const cs = getComputedStyle(probe); PH.safeTop = parseFloat(cs.paddingTop) || 0; PH.safeBottom = parseFloat(cs.paddingBottom) || 0; }
+    const TOP = PH.safeTop < 20 ? SB_H : 0, vw = innerWidth, vh = innerHeight;
+    let s = vw / W, h = vh / s + TOP, x = 0;
+    if (h < H0) { s = vh / (H0 - TOP); h = H0; x = (vw - W * s) / 2; }   // 디자인보다 짧은 화면: 아래를 끌어올리지 않고 높이에 맞춰 통째로 줄임, 좌우는 바탕색
+    PH.s = s; PH.h = h; PH.extra = h - H0; PH.x = x; PH.top = TOP;
+    root.style.setProperty("--ph-x", x.toFixed(2) + "px");
+    root.style.setProperty("--ph-y", (-TOP * s).toFixed(2) + "px");
+    root.style.setProperty("--ph-vh", vh + "px");
     root.style.setProperty("--ph-s", s.toFixed(5)); root.style.setProperty("--ph-h", h.toFixed(2) + "px");
     shiftAll();
   }

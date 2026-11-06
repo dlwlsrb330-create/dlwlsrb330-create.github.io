@@ -16,7 +16,7 @@
 /* 폰 틀 · 옆 버튼 · 가짜 다이내믹 아일랜드 · 둥근 모서리는 숨김 (data-embed 와 같은 규칙 + 자리 고정) */
 :root[data-iphone] #device { position: absolute; left: 0; top: 0; padding: 0; border-radius: 0; box-shadow: none; background: none; }
 :root[data-iphone] #device .island, :root[data-iphone] #device .btn-side { display: none; }
-:root[data-iphone] #phone, :root[data-iphone] #device #phone { position: absolute; left: 0; top: 0; width: 390px; height: var(--ph-h); border-radius: 0; transform-origin: 0 0; transform: translateX(var(--ph-x, 0px)) scale(var(--ph-s)); touch-action: pan-y; }
+:root[data-iphone] #phone, :root[data-iphone] #device #phone { position: absolute; left: 0; top: 0; width: 390px; height: var(--ph-h); border-radius: 0; transform-origin: 0 0; transform: translate(var(--ph-x, 0px), var(--ph-y, 0px)) scale(var(--ph-s)); touch-action: pan-y; }
 :root[data-iphone] #glow { border-radius: 0; }
 
 /* 화면 조각 높이를 기기 높이에 맞춤 (가로는 390 그대로) */
