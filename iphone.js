@@ -423,11 +423,34 @@
     new MutationObserver((ms) => ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1 && n.parentElement === fig) one(n); }))).observe(fig, { childList: true });
   }
 
+  // ---------- 실행 감독(main launch2_director.js) 전역 함수 갈아끼우기: 결과는 같고, 값이 바뀔 때만 쓴다 ----------
+  //   bodyTint · setColor 는 매 프레임 마스코트 색 변수(--ink · --eye) · 글로우 네 색 · 눈 그라데이션을 같은 값으로 다시 써서 마스코트 SVG 전체를 매 프레임 다시 계산했다(가만히 있을 때도).
+  //   geoTexts 는 발산 제목 세 줄을 top 으로 움직여 매 프레임 배치를 다시 계산했다 → 같은 자리를 translate 변수로(세 줄 모두 translate: var(--tw-translate-x) var(--tw-translate-y)).
+  function swapDirector() {
+    if (typeof setColor !== "function" || typeof geoTexts !== "function") return;
+    const setColor0 = setColor; let colorKey = null;
+    const stg = $("stage"); let eyeW = null;   // 감독이 setColor 다음에 --eye 를 덮어쓰는 때(실행 장면)가 있어, 마지막으로 쓴 값과 다르면 다시 쓴다
+    window.setColor = (name, k) => { const key = name + "|" + (+k).toFixed(3) + "|" + (typeof colorVar !== "undefined" ? colorVar : "");
+      if (key === colorKey && stg.style.getPropertyValue("--eye") === eyeW) return; colorKey = key; setColor0(name, k); eyeW = stg.style.getPropertyValue("--eye"); };
+    let geoEls = null, geoKey = null;
+    window.geoTexts = (k) => {
+      if (!geoEls) { const f = COMET.SCR && COMET.SCR.D1 && COMET.SCR.D1.fig; if (!f) return; geoEls = [...f.querySelectorAll("p")].filter(p => /^(기쁨을 주는|출근길 낯선|10\.27 ·)/.test(p.textContent.trim())); }
+      const key = k === null ? "n" : k.toFixed(3); if (key === geoKey) return; geoKey = key;
+      for (const p of geoEls) {   // main: top = top0 + (k 없음 ? 0 : DY + (1 − k) × 8), 투명도 k
+        if (p.dataset.top0 === undefined) p.dataset.top0 = parseFloat(p.style.top) || p.offsetTop;
+        p.style.opacity = k === null ? "" : k.toFixed(3);
+        const top = (+p.dataset.top0 + (k === null ? 0 : GEO_TEXT_DY)).toFixed(1) + "px"; if (p.style.top !== top) p.style.top = top;   // 들어올 때 · 나갈 때 한 번만
+        if (k === null) p.style.removeProperty("--tw-translate-y"); else p.style.setProperty("--tw-translate-y", ((1 - k) * 8).toFixed(2) + "px");
+      }
+    };
+  }
+
   // ---------- 시작 ----------
   addEventListener("resize", fit); addEventListener("orientationchange", () => setTimeout(fit, 60));
   document.addEventListener("DOMContentLoaded", () => {
     document.body.appendChild(probe); fit(); tagAll(); touchIcon(); if (fpsOn) fpsShow();
     if (COMET.SCR.D1) splitInvert(COMET.SCR.D1.fig);
+    swapDirector();
     // 입구를 열 때마다 서버에서 새로 받게 (sw.js) — 사이트에 올린 것이 앱을 다시 열면 바로 보임. https 에서만
     if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(() => {});
     // 앱처럼 바로 실행: main 의 실행 장면은 바탕화면 아이콘을 눌러야 시작한다 → 아이폰에서는 켜자마자 그 아이콘 누름을 넣는다 (launch_app.js 가 페이지 준비 50ms 뒤부터 받음)
