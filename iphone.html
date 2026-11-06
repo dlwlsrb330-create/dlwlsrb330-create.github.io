@@ -20,7 +20,7 @@
 // index.html 을 그대로 읽어 이 문서 안에 이어 쓴다 — 템플릿 · 스크립트 순서 · ?v= 가 데스크탑과 늘 같다.
 // 동기로 읽는 까닭: index.html 의 스크립트들이 '문서를 읽는 중'에 차례로 돌고 DOMContentLoaded 를 기다리는 것이 있어서, 같은 차례로 돌게 하려면 쓰는 중에 끼워 넣어야 한다.
 (function () {
-  var V = { css: "ip1106w", js: "ip1106w" };   // 아이폰 쪽 파일을 고치면 여기 ?v= 를 올린다
+  var V = { css: "ip1106x", js: "ip1106x" };   // 아이폰 쪽 파일을 고치면 여기 ?v= 를 올린다
   var x = new XMLHttpRequest();
   x.open("GET", "/index.html?ip=" + Date.now(), false); x.send(null);
   var s = x.responseText;
