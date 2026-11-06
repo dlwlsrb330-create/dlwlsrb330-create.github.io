@@ -467,12 +467,35 @@
     };
   }
 
+  // ---------- 마스코트 엔진: 안 보일 때는 그리지 않기 ----------
+  //   엔진(comet5_part2)은 마스코트가 숨은 화면(기록 · 팀 · 설정 …)에서도, 발산 화면에서 슬라임에 가려 투명할 때도 매 프레임 행성 줄무늬 · 눈 모양을 새로 만들어 썼다.
+  //   그리기 함수만 갈아끼워, 보일 때는 원래 그대로 그리고 안 보이면 건너뛴다(매 프레임 처음부터 그리는 방식이라 다시 보이는 순간 바로 맞는 모양)
+  function swapEngineDraw() {
+    const stage = $("stage"), svg = $("svg"), svgE = $("svgE"), glc = $("gl"); if (!stage) return;
+    const gone = () => stage.classList.contains("hid") && +getComputedStyle(stage).opacity < .01;   // 사라지는 .25초 동안은 계속 그림
+    const wrap = (name, layer) => { const f0 = window[name]; if (typeof f0 !== "function") return; window[name] = function (...a) { if ((layer && layer.style.opacity === "0") || gone()) return; return f0.apply(this, a); }; };
+    wrap("drawRibbons", svg); wrap("drawEyesOn", svgE); wrap("drawGL", glc); wrap("bakeEyes", glc);
+  }
+  // ---------- 실행 장면 검은 원: 크기 대신 scale ----------
+  //   main setMass 는 지름 1,300px 넘는 원(화면 전체와 '차이'로 섞임)의 width · height 를 매 프레임 바꿔 배치 · 다시 그리기를 불렀다.
+  //   → 크기는 가장 큰 지름(RMAX)으로 고정하고 같은 중심 · 같은 지름이 되게 scale 만 바꾼다
+  function swapMass() {
+    if (typeof setMass !== "function" || typeof RMAX === "undefined") return;
+    const m = $("mass"), R = RMAX, D2 = (2 * R).toFixed(1) + "px";
+    window.setMass = (r, squash) => {
+      m.style.display = "block"; if (m.style.width !== D2) { m.style.width = m.style.height = D2; }
+      const k = r / R;
+      m.style.transform = `translate(${(MCX - R).toFixed(1)}px, ${(MCY - R).toFixed(1)}px) scale(${(k * (1 + squash)).toFixed(5)}, ${(k * (1 - squash)).toFixed(5)})`;
+    };
+    m.style.willChange = "transform";
+  }
+
   // ---------- 시작 ----------
   addEventListener("resize", fit); addEventListener("orientationchange", () => setTimeout(fit, 60));
   document.addEventListener("DOMContentLoaded", () => {
     document.body.appendChild(probe); fit(); tagAll(); touchIcon(); if (fpsOn) fpsShow();
     if (COMET.SCR.D1) splitInvert(COMET.SCR.D1.fig);
-    swapDirector(); swapSpring();
+    swapDirector(); swapSpring(); swapEngineDraw(); swapMass();
     // 입구를 열 때마다 서버에서 새로 받게 (sw.js) — 사이트에 올린 것이 앱을 다시 열면 바로 보임. https 에서만
     if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(() => {});
     // 앱처럼 바로 실행: main 의 실행 장면은 바탕화면 아이콘을 눌러야 시작한다 → 아이폰에서는 켜자마자 그 아이콘 누름을 넣는다 (launch_app.js 가 페이지 준비 50ms 뒤부터 받음)
