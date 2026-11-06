@@ -356,7 +356,7 @@
     const S = l.st, slime = typeof SLIME !== "undefined" && SLIME.active && SLIME.active();
     const vis = S.w * (slime ? 2.05 / 1.45 : 2 / 2.9);   // 보이는 지름: 발산은 공 궤도 끝(공 반지름 1 = 무대 반 폭 1.45 칸, 궤도 끝 2.05 칸) · 홈은 행성
     const room = l.top - 12 - lift - HEAD_B - 16;   // 머리글 아래 ~ 받침 위 (위아래 8px 씩)
-    const k = Math.max(.35, Math.min(1, room / vis)), cy2 = Math.min(S.cy, HEAD_B + 8 + room / 2 + 0), cx2 = S.cx;
+    const k = Math.max(.35, Math.min(.7, room / vis)), cy2 = Math.min(S.cy, HEAD_B + 8 + room / 2 + 0), cx2 = S.cx;
     const tx = cx2 - S.L[0] - k * (S.cx - S.L[0]), ty = cy2 - S.L[1] - k * (S.cy - S.L[1]);
     S.el.style.transition = `${S.tr ? S.tr + ", " : ""}translate .22s ${EASE_KB}, scale .22s ${EASE_KB}`;
     S.el.style.translate = `${tx.toFixed(1)}px ${ty.toFixed(1)}px`; S.el.style.scale = k.toFixed(4);
