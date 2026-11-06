@@ -3,7 +3,7 @@
 :root[data-iphone] { --ph-s: 1; --ph-h: 844px; }
 
 /* 바닥 화면은 고정 — 통째로 튕기거나 당겨서 새로고침 되지 않게 */
-:root[data-iphone], :root[data-iphone] body { position: fixed; inset: 0; margin: 0; overflow: hidden; overscroll-behavior: none; background: #000; }
+:root[data-iphone], :root[data-iphone] body { position: fixed; inset: 0; margin: 0; overflow: hidden; overscroll-behavior: none; background: var(--ph-bg, #F7F6FA); }   /* 사파리가 위 상태 표시줄 · 아래 주소창 띠를 이 색으로 칠함 → 지금 화면 바탕색을 따라감(iphone.js paintBg) */
 :root[data-iphone] body { display: block; min-height: 0; height: 100%; }
 :root[data-iphone] { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
 

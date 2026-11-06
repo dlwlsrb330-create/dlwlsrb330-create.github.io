@@ -300,12 +300,27 @@
   addEventListener("focusin", () => setTimeout(keyboard, 50)); addEventListener("focusout", () => setTimeout(keyboard, 50));
   addEventListener("scroll", () => { if (window.scrollY || window.scrollX) window.scrollTo(0, 0); }, { passive: true });
 
+  // ---------- 위아래 띠 색: 지금 화면 바탕색 (사파리 상태 표시줄 · 주소창 띠, 홈 화면 앱의 위아래 여백) ----------
+  let lastBg = null;
+  function paintBg() {
+    if (typeof COMET === "undefined") return;
+    const home = $("home"), id = COMET.cur();
+    let c = "#F7F6FA";
+    if (home && home.style.display !== "none") c = "#1d2028";                         // 실행 전 가짜 바탕화면
+    else if ((COMET.isDarkOn && COMET.isDarkOn()) || (id && isDark(id))) c = "#06050A";   // 발산(검정) 화면
+    else if (id && COMET.SCR[id]) { const b = getComputedStyle(COMET.SCR[id].fig).backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) c = b; }
+    if (c === lastBg) return; lastBg = c;
+    root.style.setProperty("--ph-bg", c);
+    let m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", c);
+  }
+
   // ---------- 시작 ----------
   addEventListener("resize", fit); addEventListener("orientationchange", () => setTimeout(fit, 60));
   document.addEventListener("DOMContentLoaded", () => {
     document.body.appendChild(probe); fit(); tagAll(); touchIcon(); if (fpsOn) fpsShow();
     // 화면이 바뀔 때마다(나중에 붙는 조각까지) 다시 찾는다
-    new MutationObserver(() => requestAnimationFrame(() => { const id = COMET.cur(); if (id && COMET.SCR[id]) { tagFig(COMET.SCR[id].fig); shiftAll(); } })).observe(document.body, { attributes: true, attributeFilter: ["data-screen"] });
+    new MutationObserver(() => requestAnimationFrame(() => { const id = COMET.cur(); if (id && COMET.SCR[id]) { tagFig(COMET.SCR[id].fig); shiftAll(); } paintBg(); })).observe(document.body, { attributes: true, attributeFilter: ["data-screen"] });
+    paintBg(); setInterval(paintBg, 400);   // 실행 장면 · 발산 연출처럼 화면 이름 없이 바뀌는 것도 따라감
   });
   fit();
 })();
