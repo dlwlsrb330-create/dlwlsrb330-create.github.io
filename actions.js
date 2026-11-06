@@ -144,7 +144,7 @@ const ACTIONS = (() => {
     P.after(0, () => document.addEventListener("pointerdown", function close(ev) { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener("pointerdown", close, true); } }, true));
   }
   const trash = () => { P.show("T1", "replace"); P.moveStage({ x: 155, y: 262, s: 80 / 220 }); P.plan("idle"); P.expr("sad"); P.after(1600, () => { P.expr(null); P.moveStage({ x: 155, y: 262, s: 0 }); }); };
-  const invite = () => { P.moveStage({ x: 169, y: 30, s: 40 / 220 }); P.wait("invite", {}); P.after(4200, () => P.moveStage({ x: 169, y: 30, s: 0 })); };
+  const invite = () => {};   // 11-06 진규: 초대 · 공유 누를 때 마스코트 연출 뺌 (전엔 마스코트가 위로 올라가 메시지 보내는 연출)
   const connect = ({ el }) => { P.wait("connect", {}); P.after(WAIT.connect.happyAt, () => { if (el) el.style.outline = "2px solid #161616"; }); };
   const disconnect = () => { P.plan("idle"); };
   const restore = () => { P.react("happy"); P.after(900, () => P.back()); };

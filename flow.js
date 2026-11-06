@@ -35,9 +35,9 @@ const FLOW = [
   ["M1", "dim", "", "back"], ["M1", "btn 닫기", "", "back"], ["M1", "text=팀", "M2", "push"], ["M1", "text=3명", "M2", "push"], ["M1", "text=자료 연결", "M3-C", "push"], ["M1", "text=ai 연결", "M4-A", "push"],
   ["M1", "줄 프로젝트 관리", "H5", "replace"], ["M1", "줄 팀", "M2", "push"], ["M1", "줄 자료 연결", "M3-C", "push"], ["M1", "줄 ai 연결", "M4-A", "push"], ["M1", "줄 휴지통", "M5", "push"],   // 11판: 줄 전체(화살표 포함)
   ["M1", "text=휴지통", "M5", "push"], ["M1", "btn 설정", "S0", "push"], ["M1", "text=로그아웃", "", "fn:logout"],   /* 11-05 주형: 로그아웃(전엔 반응 없음) */ ["M1", "text=프로젝트 관리", "", "back"], ["M1", "text=프로덕트디자인4", "H5", "replace"],
-  ["M2", "btn 뒤로", "", "back"], ["M2", "초대 입력칸", "M2-2", "sheet"], ["M2", "일반 접근 줄", "M2-1", "sheet"], ["M2", "text:수정 가능", "M2-1", "sheet"], ["M2", "text=전체 권한", "M2-1", "sheet"], ["M2", "text:보기만", "M2-1", "sheet"],
+  ["M2", "btn 뒤로", "", "back"], ["M2", "초대 입력칸", "M2-2", "sheet"], ["M2", "일반 접근 줄", "", "fn:m2Perm"], ["M2", "text:수정 가능", "", "fn:m2Perm"], ["M2", "text:보기만", "", "fn:m2Perm"],   // 11-06 진규: 검색칸 · 링크 줄 권한은 눌러 고르면 글자가 바뀜(m2Perm), 멤버 줄은 예전대로
   // 11-05 주형: M2-1 권한 시트 = 멤버 권한 · 팀원 초대(M2-2) · 온보딩 초대(OB-INV) 공용. 선택지는 permPick(초대에서 열었으면 고른 권한을 그 줄에 넣고 닫음, 아니면 닫기만)
-  ["M2-1", "dim", "", "back"], ["M2-1", "선택됨", "", "fn:permPick"], ["M2-1", "text=수정 가능", "", "fn:permPick"], ["M2-1", "text=보기만", "", "fn:permPick"], ["M2-1", "text=전체 권한", "", "fn:permPick"], ["M2-1", "text=팀에서 내보내기", "", "back"],
+  ["M2-1", "dim", "", "fn:permDim"], ["M2-1", "선택됨", "", "fn:permPick"], ["M2-1", "text=수정 가능", "", "fn:permPick"], ["M2-1", "text=보기만", "", "fn:permPick"], ["M2-1", "text=전체 권한", "", "fn:permPick"], ["M2-1", "text=팀에서 내보내기", "", "back"],
   ["M2-2", "dim", "", "back"], ["M2-2", "btn 초대", "", "fn:invite"], ["M2-2", "공유", "", "fn:invite"], ["M2-2", "btn 완료", "", "back"], ["M2-2", "권한 · 초대할 사람", "", "fn:invitePerm"],   // 11-05 주형: 초대할 사람 권한 → M2-1 시트 (이름은 ob_invite_page.js 가 붙임)
   ["M3-C", "btn 뒤로", "", "back"], ["M3-C", "연결 칩 피그마", "M3-D", "push"], ["M3-C", "연결 칩 노션", "M3-N", "push"], ["M3-C", "연결 칩 구글 드라이브", "M3-G", "push"],   // 5판: 서비스별 상세
   ["M3-D", "btn 뒤로", "", "back"], ["M3-D", "btn 연결 끊기", "", "fn:disconnect"],

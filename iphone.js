@@ -113,7 +113,7 @@
     if (id === "OB-1") return false;                                                             // 온보딩 첫 장은 뒤가 없음
     G = { kind: "edge", cand: true, pid: e.pointerId, x0: e.clientX, y0: e.clientY, tr: track() }; G.tr.add(e.clientX, e.clientY); return true;
   }
-  function edgeEngage() {
+  function edgeEngage() { blockOn();
     const st = COMET.stack(), id = COMET.cur(), top = COMET.SCR[id].el, low = [];
     if (st.length > 1) { let k = st.length - 2; while (k > 0 && isOver(st[k].id)) k--; for (let i = k; i <= st.length - 2; i++) { const s = COMET.SCR[st[i].id]; if (s && s.el !== top) low.push(s.el); } }
     const dark = isDark(id);
@@ -185,7 +185,7 @@
     if (e.target.closest("input, textarea, [contenteditable='true']")) return false;
     G = { kind: "sheet", cand: true, pid: e.pointerId, x0: e.clientX, y0: e.clientY, tr: track(), sp }; G.tr.add(e.clientX, e.clientY); return true;
   }
-  function sheetEngage() {
+  function sheetEngage() { blockOn();
     const { scr, parts, extra } = G.sp; scr.el.classList.remove("in-sheet");
     G.els = [...parts, ...extra].map(k => ({ k, tf: k.style.transform || "", wc: k.style.willChange })); G.els.forEach(o => { o.k.style.willChange = "transform"; });
     G.st = $("stage").classList.contains("front") ? $("stage") : null;
@@ -273,14 +273,20 @@
     if (G.kind === "long") { clearTimeout(G.timer); G = null; return; }
     const engaged = !G.cand;
     if (G.kind === "edge") edgeEnd(cancelled); else sheetEnd(cancelled);
-    if (engaged) eatNextClick();
+    blockOff(); if (engaged) eatNextClick();
   }
   addEventListener("pointerdown", down, true);
   addEventListener("pointermove", move, true);
   addEventListener("pointerup", (e) => up(e, false), true);
   addEventListener("pointercancel", (e) => up(e, true), true);
   // 손짓이 잡힌 동안엔 브라우저 스크롤 · 뒤로가기가 손가락을 가져가지 않게
-  addEventListener("touchmove", (e) => { if (G && G.kind !== "long") e.preventDefault(); if (e.touches.length > 1) e.preventDefault(); }, { passive: false, capture: true });
+  // 손짓이 잡힌 동안에만 비수동 touchmove 를 건다 — window 에 늘 걸어 두면 iOS 가 손가락이 움직일 때마다 JS 를 기다려 스크롤 · 애니메이션이 끊긴다
+  const blockMove = (e) => { if (G && G.kind !== "long") e.preventDefault(); };
+  let blocking = false;
+  const blockOn = () => { if (!blocking) { blocking = true; addEventListener("touchmove", blockMove, { passive: false, capture: true }); } };
+  const blockOff = () => { if (blocking) { blocking = false; removeEventListener("touchmove", blockMove, { capture: true }); } };
+  addEventListener("touchstart", (e) => { if (e.touches.length > 1) blockOn(); }, { passive: true, capture: true });   // 두 손가락(핀치)은 CSS touch-action 이 막고, 혹시 모를 확대는 gesturestart 가 막음
+  addEventListener("touchend", () => { if (!G) blockOff(); }, { passive: true, capture: true });
   // 확대 막기: 핀치 · 두 번 탭
   for (const k of ["gesturestart", "gesturechange", "gestureend"]) addEventListener(k, (e) => e.preventDefault(), { passive: false });
   let lastTouchEnd = 0;

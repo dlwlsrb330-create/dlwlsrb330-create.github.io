@@ -24,7 +24,8 @@ const SEED = (() => {
     .seedrow::-webkit-scrollbar { display: none; }
     .seedrow .in { position: relative; height: 34px; display: flex; gap: 8px; padding: 0 16px; width: max-content; }
     .seedq { height: 34px; display: flex; align-items: center; padding: 0 14px; border-radius: 9999px; box-sizing: border-box; background: rgba(20,15,36,.05); border: 1px solid rgba(20,15,36,.1); font: 500 13px/1 ${FONT}; color: #1a1626; white-space: nowrap; flex: none; cursor: pointer; user-select: none; }
-    .seedarch { position: absolute; left: 0; height: 24px; padding: 0 10px; margin: 0; white-space: nowrap; font: 400 13px/24px ${FONT}; color: #6b6484; cursor: pointer; user-select: none; pointer-events: auto !important; }
+    .seedarch { position: absolute; left: 0; height: 24px; padding: 0 10px; margin: 0; white-space: nowrap; font: 400 13px/24px ${FONT}; color: #6b6484; cursor: pointer; user-select: none; }
+    .scr.on > .fig > .seedarch { pointer-events: auto !important; }   /* 11-06: 발산 화면이 숨어(투명) 있을 땐 눌림을 받지 않게 — 전엔 다른 화면(M2 등)을 눌러도 이 글이 받아 담은 카드로 갔다 */
     .seedpop { position: absolute; left: 16px; width: 280px; padding: 8px; border-radius: 14px; box-sizing: border-box; background: #fff; border: 1px solid rgb(228,224,238); box-shadow: 0 0 40px rgba(20,15,36,.10); font-family: ${FONT}; display: none; }
     .seedpop.on { display: block; }
     .seedpop .h { padding: 8px 10px 4px; font: 500 12px/16px ${FONT}; color: #6b6484; }
@@ -97,7 +98,7 @@ const SEED = (() => {
   const inRect = (el, x, y) => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; };
   const pick = (ev) => {
     const t = ev.target.closest && ev.target.closest("[data-seed], .seedgo");
-    if (t) return t;
+    if (t && t.closest(".scr.on")) return t;   // 숨은 화면의 부품은 안 받음
     if (P.cur() === "D1" && inRect(plus, ev.clientX, ev.clientY)) return plus;
     if (P.cur() === "D1" && pop.classList.contains("on")) return pop;   // 팝오버 밖을 누르면 닫기만
     return null; };

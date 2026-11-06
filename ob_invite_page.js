@@ -230,6 +230,32 @@
     };
     // 사이드바 팀원 초대(M2-2)의 '수정 가능 ▾'
     ACTIONS.invitePerm = ({ el }) => { const t = el && (el.tagName === "P" ? el : [...el.querySelectorAll("p")].find(p => /▾/.test(p.textContent))) ; if (t) open(t, "초대할 사람", "이 초대로 들어오는 사람이 할 수 있는 일"); };
+    // 11-06 진규: 팀 화면(M2)의 검색칸 '수정 가능 ▾' · 링크 줄 '보기만 ▾' 도 같은 시트로 고르고 글자가 바뀜. 멤버 줄은 예전대로 시트만
+    ACTIONS.m2Perm = ({ el }) => {
+      const f = COMET.SCR.M2 && COMET.SCR.M2.fig; if (!f || !el) return;
+      const row = (n) => f.querySelector(`[data-name="${n}"]`), inside = (a, b) => { if (!a || !b) return false; const r = a.getBoundingClientRect(), q = b.getBoundingClientRect(); return r.top + r.height / 2 >= q.top && r.top + r.height / 2 <= q.bottom; };
+      const pick = (box) => [...f.querySelectorAll("p")].find(p => /▾/.test(p.textContent) && inside(p, box));
+      const bar = row("초대 입력칸"), link = row("일반 접근 줄");
+      if (inside(el, bar)) { const t = el.tagName === "P" ? el : pick(bar); if (t) return open(t, "초대할 사람", "이 초대로 들어오는 사람이 할 수 있는 일"); }
+      if (el === link || inside(el, link)) { const t = pick(link); watchLink(); if (t) return open(t, "링크가 있으면 누구나", "링크로 들어오는 사람이 할 수 있는 일"); }
+      // 멤버 줄: 시트 머리를 그 사람 이름 · 참여로, 고르면 그 줄 글자가 바뀜. '팀에서 내보내기'는 보임
+      const t = el.tagName === "P" && /▾/.test(el.textContent) ? el : null; if (!t) return COMET.show("M2-1", "sheet");
+      const T = parseFloat(t.style.top), near = [...f.querySelectorAll(":scope > p")].filter(p => parseFloat(p.style.left) === 72 && Math.abs(parseFloat(p.style.top) - T) < 30).sort((a, b) => parseFloat(a.style.top) - parseFloat(b.style.top));
+      if (near.length < 2) return COMET.show("M2-1", "sheet");
+      open(t, near[0].textContent.trim(), near[1].textContent.trim());
+      const q = parts(fig()); [q.line, q.out].forEach(e => { if (e) e.style.display = ""; });
+    };
+    // 11-06 진규: 선택지 줄의 글자 밖(줄 빈 곳)을 눌러도 그 줄을 고름 — 전엔 바깥(dim)으로 잡혀 고르지 않고 닫혔다
+    let downY = 0; window.addEventListener("pointerdown", (e) => { downY = e.clientY; }, true);
+    ACTIONS.permDim = () => {
+      const f = fig(); const o = f && parts(f).opts.find(p => { if (!p) return false; const b = p.getBoundingClientRect(); return b.height && downY >= b.top - 14 && downY <= b.top + 48; });
+      return o ? ACTIONS.permPick({ el: o }) : COMET.back();
+    };
+    // 링크 줄 권한이 바뀌면 아래 설명 글도 (화면이 다 만들어진 뒤라야 해서 링크 줄을 처음 열 때 한 번 붙임)
+    let watched = false; const watchLink = () => { if (watched) return; watched = true; const f = COMET.SCR.M2 && COMET.SCR.M2.fig; if (!f) return; const ps = [...f.querySelectorAll("p")], d = ps.find(p => /^링크로 들어오면/.test(p.textContent.trim())), link = f.querySelector('[data-name="일반 접근 줄"]'); if (!d || !link) return;
+      const L = parseFloat(link.style.top), t = ps.find(p => /▾/.test(p.textContent) && parseFloat(p.style.top) > L && parseFloat(p.style.top) < L + parseFloat(link.style.height)); if (!t) return;
+      const SAY = { "수정 가능": "고칠 수 있어요", "보기만": "보기만 돼요", "전체 권한": "모든 걸 할 수 있어요" };
+      new MutationObserver(() => { const k = Object.keys(SAY).find(k => t.textContent.trim().startsWith(k)); if (k) d.textContent = d.textContent.trim().replace(/^링크로 들어오면 [^.]*\./, `링크로 들어오면 ${SAY[k]}.`); }).observe(t, { childList: true, characterData: true, subtree: true }); };
     // 시트가 어떤 길로든 닫히면 원래(멤버용) 모습으로 — 닫히는 애니메이션(.34초)이 끝난 뒤
     let was = null; new MutationObserver(() => { const now = document.body.dataset.screen; if (was === "M2-1" && now !== "M2-1" && ctx) setTimeout(restore, 360); was = now; }).observe(document.body, { attributes: true, attributeFilter: ["data-screen"] });
     return { open };
