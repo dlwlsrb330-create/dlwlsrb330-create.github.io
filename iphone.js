@@ -322,10 +322,34 @@
     let m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", c);
   }
 
+  // ---------- 측정 판 (임시): 실기기가 주는 화면 값을 보여 줌. 탭하면 닫힘 ----------
+  function measurePanel() {
+    const d = document.createElement("div");
+    d.style.cssText = "position:fixed;z-index:2000;left:50%;top:45%;transform:translate(-50%,-50%);width:310px;padding:14px 16px;border-radius:14px;background:rgba(20,18,28,.94);color:#7CFC8A;font:600 13px/1.5 ui-monospace,Menlo,monospace;white-space:pre";
+    const p = document.createElement("div"); p.style.cssText = "position:fixed;left:0;top:0;width:0;height:0;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;visibility:hidden";
+    const box = document.createElement("div"); box.style.cssText = "position:fixed;left:0;right:0;top:0;bottom:0;visibility:hidden;pointer-events:none";
+    document.body.append(p, box);
+    const paint = () => { const c = getComputedStyle(p), vv = window.visualViewport, r = box.getBoundingClientRect(), ph = $("phone").getBoundingClientRect();
+      d.textContent = ["측정 (탭하면 닫힘)",
+        "standalone " + navigator.standalone + " / " + matchMedia("(display-mode: standalone)").matches,
+        "inner      " + innerWidth + " x " + innerHeight,
+        "screen     " + screen.width + " x " + screen.height,
+        "visual     " + (vv ? vv.width.toFixed(1) + " x " + vv.height.toFixed(1) + " @" + vv.offsetTop.toFixed(1) : "-"),
+        "fixed box  top " + r.top.toFixed(1) + " h " + r.height.toFixed(1),
+        "safe t/b   " + c.paddingTop + " / " + c.paddingBottom,
+        "phone      top " + ph.top.toFixed(1) + " bottom " + ph.bottom.toFixed(1),
+        "PH s/top   " + PH.s.toFixed(4) + " / " + PH.top,
+        "ver        ip1106h"].join("\n"); };
+    paint(); setTimeout(paint, 800); setTimeout(paint, 2500); addEventListener("resize", paint);
+    d.addEventListener("click", (e) => { e.stopPropagation(); d.remove(); }, true);
+    d.addEventListener("pointerdown", (e) => e.stopPropagation(), true);
+    document.body.appendChild(d);
+  }
+
   // ---------- 시작 ----------
   addEventListener("resize", fit); addEventListener("orientationchange", () => setTimeout(fit, 60));
   document.addEventListener("DOMContentLoaded", () => {
-    document.body.appendChild(probe); fit(); tagAll(); touchIcon(); if (fpsOn) fpsShow();
+    document.body.appendChild(probe); fit(); tagAll(); touchIcon(); if (fpsOn) fpsShow(); measurePanel();
     // 화면이 바뀔 때마다(나중에 붙는 조각까지) 다시 찾는다
     new MutationObserver(() => requestAnimationFrame(() => { const id = COMET.cur(); if (id && COMET.SCR[id]) { tagFig(COMET.SCR[id].fig); shiftAll(); } paintBg(); })).observe(document.body, { attributes: true, attributeFilter: ["data-screen"] });
     paintBg(); setInterval(paintBg, 400);   // 실행 장면 · 발산 연출처럼 화면 이름 없이 바뀌는 것도 따라감
