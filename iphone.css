@@ -16,7 +16,7 @@
 /* 폰 틀 · 옆 버튼 · 가짜 다이내믹 아일랜드 · 둥근 모서리는 숨김 (data-embed 와 같은 규칙 + 자리 고정) */
 :root[data-iphone] #device { position: absolute; left: 0; top: 0; padding: 0; border-radius: 0; box-shadow: none; background: none; }
 :root[data-iphone] #device .island, :root[data-iphone] #device .btn-side { display: none; }
-:root[data-iphone] #phone, :root[data-iphone] #device #phone { position: absolute; left: 0; top: 0; width: 390px; height: var(--ph-h); border-radius: 0; transform-origin: 0 0; transform: translate(var(--ph-x, 0px), var(--ph-y, 0px)) scale(var(--ph-s)); touch-action: pan-y; }
+:root[data-iphone] #phone, :root[data-iphone] #device #phone { position: absolute; left: 0; top: 0; width: 390px; height: var(--ph-h); border-radius: 0; transform-origin: 0 0; transform: translate(var(--ph-x, 0px), calc(var(--ph-y, 0px) + var(--ph-ty, 0px))) scale(var(--ph-s)); touch-action: pan-y; }
 :root[data-iphone] #glow { border-radius: 0; }
 
 /* 화면 조각 높이를 기기 높이에 맞춤 (가로는 390 그대로) */
@@ -57,3 +57,8 @@
 :root[data-iphone] #home > * { visibility: hidden !important; }
 /* 글 칠 때: 디자인에 그려 둔 가짜 커서(깜빡이는 ㅣ)가 진짜 커서와 글자를 가리던 것 → 그 화면에서 입력칸에 초점이 있으면 숨김 */
 :root[data-iphone] .fig:focus-within > [data-name="커서"], :root[data-iphone] .fig:focus-within [data-name="커서"] { visibility: hidden !important; }
+/* 발산 화면 반전은 조각마다 (iphone.js splitInvert) — 덩어리 필터는 끔 */
+:root[data-iphone] .scr.dark .fig.ph-split { filter: none !important; }
+/* 커서: 반전 화면 안 입력칸은 뒤집힌 뒤 진한 잉크(#1a1626)가 되게 미리 거꾸로 정한 색, 보통 화면은 잉크 */
+:root[data-iphone] .app5-in, :root[data-iphone] input, :root[data-iphone] textarea { caret-color: #1a1626; }
+:root[data-iphone] .scr.dark .app5-in, :root[data-iphone] .scr.dark input, :root[data-iphone] .scr.dark textarea { caret-color: #E9E5F5; }

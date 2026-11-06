@@ -308,7 +308,7 @@
     e.stopPropagation(); e.preventDefault();
     const r = best.getBoundingClientRect(); best.dispatchEvent(new MouseEvent("click", { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, bubbles: true, cancelable: true }));
   }
-  addEventListener("click", snapTap, true);
+  // 비껴 누름 보정은 뺌 — 단추 근처 빈 곳을 눌러도 메뉴 · 시트가 튀어나왔음
 
   // ---------- ③-3 키보드: 입력 바(또는 입력칸이 든 시트)를 키보드 위로 ----------
   //   iOS 홈 화면 앱은 키보드가 올라오면 innerHeight 자체가 줄기도 하고(사파리는 visualViewport 만 줆) → 키보드 높이 = 원래 창 높이 - 지금 보이는 영역 아래 끝
@@ -316,7 +316,8 @@
   function keyboard() {
     const ae = document.activeElement, typing = typingNow();
     const fig = typing && ae.closest(".fig");
-    const vv = window.visualViewport, seen = vv ? vv.offsetTop + vv.height : innerHeight, kb = Math.max(0, (PH.baseVH || innerHeight) - seen);   // 화면 px
+    const vv = window.visualViewport, vh = vv ? vv.height : innerHeight, kb = Math.max(0, (PH.baseVH || innerHeight) - vh);   // 화면 px — 보이는 높이만큼만 (iOS 가 민 거리는 아래 pinTop 이 되돌림)
+    pinTop();
     if (typing && fig && kb > 60) {
       const els = [...TAGGED].filter(k => k._phMode === "move" && k.parentElement === fig && k.style.display !== "none" && getComputedStyle(k).display !== "none");
       const mine = els.some(k => k === ae || k.contains(ae));
@@ -369,7 +370,11 @@
   if (window.visualViewport) { visualViewport.addEventListener("resize", keyboard); visualViewport.addEventListener("scroll", keyboard); }
   addEventListener("resize", keyboard);
   addEventListener("focusin", kbWatch); addEventListener("focusout", kbWatch);
-  addEventListener("scroll", () => { if (window.scrollY || window.scrollX) window.scrollTo(0, 0); }, { passive: true });
+  // 키보드가 올라오면 iOS 가 입력칸을 보이게 하려고 페이지를 위로 민다. 전엔 맨 위로 되돌려(scrollTo) 화면이 한 번 튀었음 →
+  //   되돌리지 않고 민 만큼 앱 화면을 반대로 내려 상단 메뉴가 제자리에 있게 (입력 바는 keyboard 가 키보드 위로)
+  function pinTop() { const vv = window.visualViewport, y = (window.scrollY || 0) + (vv ? vv.offsetTop : 0); root.style.setProperty("--ph-ty", y.toFixed(1) + "px"); }
+  addEventListener("scroll", pinTop, { passive: true }); if (window.visualViewport) visualViewport.addEventListener("scroll", pinTop);
+  addEventListener("focusout", () => setTimeout(() => { if (!typingNow()) { window.scrollTo(0, 0); pinTop(); } }, 300));   // 키보드가 다 내려간 뒤에만 제자리로
 
   // ---------- 위아래 띠 색: 앱 맨 위에 실제로 그려지는 색 (iOS 상태 표시줄 띠 · 홈 화면 앱 위아래 여백) ----------
   //   화면 이름으로 짐작하지 않는다(발산 화면은 11판부터 흰 화면, 실행 장면은 검정, 시트 위는 어두운 막). 맨 위 한 점에 겹친 층을 아래부터 합성한다:
@@ -408,10 +413,21 @@
   }
   PH.colorAt = colorAt;
 
+  // ---------- 발산 화면(D1) 반전을 조각마다 ----------
+  //   main 은 화면 덩어리(.fig)에 invert(1) hue-rotate(180deg) 를 건다. 발산 ↔ 홈 전환 동안 조각 수십 개의 투명도가 매 프레임 바뀌면
+  //   덩어리 전체(3배 해상도 화면 한 장)를 매 프레임 다시 뒤집어 그려 끊겼다 → 덩어리 필터는 끄고 같은 필터를 조각마다 건다(조각 제 필터가 있으면 그 뒤에 이어 붙임)
+  const INV = "invert(1) hue-rotate(180deg)";
+  function splitInvert(fig) {
+    const one = (k) => { if (k._phInv) return; const own = getComputedStyle(k).filter; k._phInv = true; k.style.setProperty("filter", (own && own !== "none" ? own + " " : "") + INV); };
+    fig.classList.add("ph-split"); [...fig.children].forEach(one);
+    new MutationObserver((ms) => ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1 && n.parentElement === fig) one(n); }))).observe(fig, { childList: true });
+  }
+
   // ---------- 시작 ----------
   addEventListener("resize", fit); addEventListener("orientationchange", () => setTimeout(fit, 60));
   document.addEventListener("DOMContentLoaded", () => {
     document.body.appendChild(probe); fit(); tagAll(); touchIcon(); if (fpsOn) fpsShow();
+    if (COMET.SCR.D1) splitInvert(COMET.SCR.D1.fig);
     // 입구를 열 때마다 서버에서 새로 받게 (sw.js) — 사이트에 올린 것이 앱을 다시 열면 바로 보임. https 에서만
     if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(() => {});
     // 앱처럼 바로 실행: main 의 실행 장면은 바탕화면 아이콘을 눌러야 시작한다 → 아이폰에서는 켜자마자 그 아이콘 누름을 넣는다 (launch_app.js 가 페이지 준비 50ms 뒤부터 받음)
