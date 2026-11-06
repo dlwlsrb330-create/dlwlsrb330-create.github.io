@@ -520,12 +520,31 @@
     (function step() { const end = Math.min(imgs.length, i + 20); for (; i < end; i++) { const im = imgs[i]; if (!im.dataset.src) continue; im.src = im.dataset.src; im.removeAttribute("data-src"); if (im.decode) im.decode().catch(() => {}); } if (i < imgs.length) setTimeout(step, 30); })();
   }
 
+  // ---------- 기본 ↔ 발산: 조각 대신 화면 두 장의 투명도 ----------
+  //   main(router.js reveal)은 전환 중 홈 33 · 발산 22 조각의 투명도를 매 프레임 하나하나 쓰는데, 같은 순간엔 모든 조각에 같은 값이다(홈 1 − __divK, 발산 __divText).
+  //   → 실행 장면(홈 글이 줄마다 올라옴)이 끝나면 두 화면 조각에 flowKeep 표시(main 이 안 쓰는 빈 표시 — 라우터가 그 조각은 건너뜀)를 붙이고, 화면 두 장의 투명도만 같은 값으로 쓴다
+  function takeDivergeFade() {
+    const H = COMET.SCR.H1, Dd = COMET.SCR.D1; if (!H || !Dd) return;
+    const keep = (fig) => { [...fig.children].forEach(k => { k.dataset.flowKeep = "1"; k.style.opacity = ""; });
+      new MutationObserver((ms) => ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1 && n.parentElement === fig) n.dataset.flowKeep = "1"; }))).observe(fig, { childList: true }); };
+    const set = (el, v) => { const t = v === null ? "" : Math.max(0, Math.min(1, v)).toFixed(3); if (el.style.opacity !== t) el.style.opacity = t; };
+    (function wait() {   // 실행 장면 글 올라오기가 끝날 때까지는 main 그대로
+      if (typeof T0 === "undefined" || T0 === null || typeof L === "undefined" || COMET.tl() < L.ui[L.ui.length - 1] + L.uiLen + .1) return setTimeout(wait, 200);
+      keep(H.fig); keep(Dd.fig); root.classList.add("ph-divfade");
+      (function tick() {
+        set(H.el, H.el.classList.contains("on") ? 1 - (window.__divK || 0) : null);
+        set(Dd.el, Dd.el.classList.contains("on") ? (window.__divText ?? 0) : null);
+        requestAnimationFrame(tick);
+      })();
+    })();
+  }
+
   // ---------- 시작 ----------
   addEventListener("resize", fit); addEventListener("orientationchange", () => setTimeout(fit, 60));
   document.addEventListener("DOMContentLoaded", () => {
     document.body.appendChild(probe); fit(); tagAll(); touchIcon(); if (fpsOn) fpsShow();
     if (COMET.SCR.D1) splitInvert(COMET.SCR.D1.fig);
-    swapDirector(); swapSpring(); swapEngineDraw(); swapMass(); setTimeout(prefetchImages, 1000);
+    swapDirector(); swapSpring(); swapEngineDraw(); swapMass(); takeDivergeFade(); setTimeout(prefetchImages, 1000);
     // 입구를 열 때마다 서버에서 새로 받게 (sw.js) — 사이트에 올린 것이 앱을 다시 열면 바로 보임. https 에서만
     if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(() => {});
     // 앱처럼 바로 실행: main 의 실행 장면은 바탕화면 아이콘을 눌러야 시작한다 → 아이폰에서는 켜자마자 그 아이콘 누름을 넣는다 (launch_app.js 가 페이지 준비 50ms 뒤부터 받음)
