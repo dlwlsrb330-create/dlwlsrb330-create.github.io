@@ -14,8 +14,13 @@
   const probe = document.createElement("div");
   probe.style.cssText = "position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)";
   function fit() {
-    const s = innerWidth / W, h = innerHeight / s;   // 402 → 1.0308 · 874 / 1.0308 ≈ 848
-    PH.s = s; PH.h = h; PH.extra = h - H0;
+    // 홈 화면 앱(standalone)은 화면 전체를 쓰는데 iOS 가 처음 열 때 innerHeight 를 짧게 주는 일이 있어 화면 크기(screen)도 같이 본다
+    const vw = innerWidth, vh = navigator.standalone ? Math.max(innerHeight, screen.height) : innerHeight;
+    let s = vw / W, h = vh / s, x = 0;   // 402 → 1.0308 · 874 / 1.0308 ≈ 848
+    if (h < H0) { s = vh / H0; h = H0; x = (vw - W * s) / 2; }   // 디자인보다 짧은 화면(사파리 주소창 등): 아래를 끌어올리지 않고 높이에 맞춰 통째로 줄임, 좌우는 바탕색
+    PH.s = s; PH.h = h; PH.extra = h - H0; PH.x = x;
+    root.style.setProperty("--ph-x", x.toFixed(2) + "px");
+    root.style.setProperty("--ph-vh", vh + "px");   // 페이지 상자도 화면 끝까지 (iOS 가 준 짧은 높이에서 잘리지 않게)
     if (probe.isConnected) { const cs = getComputedStyle(probe); PH.safeTop = parseFloat(cs.paddingTop) || 0; PH.safeBottom = parseFloat(cs.paddingBottom) || 0; }
     root.style.setProperty("--ph-s", s.toFixed(5)); root.style.setProperty("--ph-h", h.toFixed(2) + "px");
     shiftAll();
@@ -53,7 +58,7 @@
       let mode = null;
       if (overlay) mode = k.classList.contains("sheetpart") ? "move" : (t <= 1 && t + h >= H0 - 2 ? "grow" : null);
       else if (t <= 1 && t + h >= H0 - 2 && h <= H0 + 2) mode = "grow";
-      else if (t >= cutoff - 1 && t < H0 + 40) mode = "move";
+      else if (t >= cutoff - 56 && t < H0 + 40) mode = "move";   // 입력 바 바로 위에 붙은 줄(추천 칩 등)도 같이
       // 가짜 홈 표시줄(134×4~5 막대)은 이름이 달라도 숨김
       if (t >= H0 - 24 && h <= 6 && Math.abs(k.offsetWidth - 134) <= 8) k.classList.add("ph-fake-hi");
       if (mode === "grow" && !(/px$/.test(k.style.height) && parseFloat(k.style.height) >= H0 - 2)) mode = null;   // 높이를 px 로 적어 둔 바탕만 늘린다 (inset 으로 붙은 막은 화면 높이를 저절로 따라감)
@@ -98,7 +103,7 @@
   // ---------- ③-1 왼쪽 가장자리 쓸어 뒤로 ----------
   let G = null; PH.gesture = () => G;   // 지금 손짓 하나 (가장자리 · 시트 · 길게 누르기)
   function edgeStart(e) {
-    if (!ready() || e.clientX > 20) return false;
+    if (!ready() || e.clientX - (PH.x || 0) > 20) return false;
     const id = COMET.cur(); if (!id || id === "H1" || id === "D1" || isOver(id)) return false;   // 홈 · 발산 첫 화면(뒤로 = 수렴) · 시트 위에서는 안 받음
     if (id === "OB-1") return false;                                                             // 온보딩 첫 장은 뒤가 없음
     G = { kind: "edge", cand: true, pid: e.pointerId, x0: e.clientX, y0: e.clientY, tr: track() }; G.tr.add(e.clientX, e.clientY); return true;

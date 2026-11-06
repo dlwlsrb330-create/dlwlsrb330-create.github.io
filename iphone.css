@@ -3,8 +3,8 @@
 :root[data-iphone] { --ph-s: 1; --ph-h: 844px; }
 
 /* 바닥 화면은 고정 — 통째로 튕기거나 당겨서 새로고침 되지 않게 */
-:root[data-iphone], :root[data-iphone] body { position: fixed; inset: 0; margin: 0; overflow: hidden; overscroll-behavior: none; background: var(--ph-bg, #F7F6FA); }   /* 사파리가 위 상태 표시줄 · 아래 주소창 띠를 이 색으로 칠함 → 지금 화면 바탕색을 따라감(iphone.js paintBg) */
-:root[data-iphone] body { display: block; min-height: 0; height: 100%; }
+:root[data-iphone], :root[data-iphone] body { position: fixed; left: 0; top: 0; right: 0; height: max(100%, var(--ph-vh, 100%)); margin: 0; overflow: hidden; overscroll-behavior: none; background: var(--ph-bg, #F7F6FA); }   /* 사파리가 위 상태 표시줄 · 아래 주소창 띠를 이 색으로 칠함 → 지금 화면 바탕색을 따라감(iphone.js paintBg) */
+:root[data-iphone] body { display: block; min-height: 0; }
 :root[data-iphone] { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
 
 /* 확대 · 길게 누르기 메뉴 · 선택 · 탭 강조색 막기 (입력칸은 뺌) */
@@ -15,7 +15,7 @@
 /* 폰 틀 · 옆 버튼 · 가짜 다이내믹 아일랜드 · 둥근 모서리는 숨김 (data-embed 와 같은 규칙 + 자리 고정) */
 :root[data-iphone] #device { position: absolute; left: 0; top: 0; padding: 0; border-radius: 0; box-shadow: none; background: none; }
 :root[data-iphone] #device .island, :root[data-iphone] #device .btn-side { display: none; }
-:root[data-iphone] #phone, :root[data-iphone] #device #phone { position: absolute; left: 0; top: 0; width: 390px; height: var(--ph-h); border-radius: 0; transform-origin: 0 0; transform: scale(var(--ph-s)); touch-action: pan-y; }
+:root[data-iphone] #phone, :root[data-iphone] #device #phone { position: absolute; left: 0; top: 0; width: 390px; height: var(--ph-h); border-radius: 0; transform-origin: 0 0; transform: translateX(var(--ph-x, 0px)) scale(var(--ph-s)); touch-action: pan-y; }
 :root[data-iphone] #glow { border-radius: 0; }
 
 /* 화면 조각 높이를 기기 높이에 맞춤 (가로는 390 그대로) */
