@@ -289,8 +289,7 @@
   addEventListener("touchend", () => { if (!G) blockOff(); }, { passive: true, capture: true });
   // 확대 막기: 핀치 · 두 번 탭
   for (const k of ["gesturestart", "gesturechange", "gestureend"]) addEventListener(k, (e) => e.preventDefault(), { passive: false });
-  let lastTouchEnd = 0;
-  addEventListener("touchend", (e) => { const t = Date.now(); if (t - lastTouchEnd < 300 && !e.target.closest("input, textarea")) e.preventDefault(); lastTouchEnd = t; }, { passive: false });
+  // 두 번 탭 확대는 CSS touch-action: manipulation 이 막는다 — 전에 touchend 로 막던 것은 0.3초 안의 두 번째 탭 클릭을 삼켜 조작이 뻑뻑했음
   addEventListener("contextmenu", (e) => { if (!e.target.closest("input, textarea, [contenteditable='true']")) e.preventDefault(); });
 
   // ---------- 작은 단추 눌림 범위: 36px 동그라미 단추를 14px 안에서 비껴 눌러도 그 단추로 ----------
