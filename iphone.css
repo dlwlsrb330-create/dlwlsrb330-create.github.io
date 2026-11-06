@@ -68,3 +68,11 @@
 :root[data-iphone] #screens > .scr { contain: layout paint style; }
 /* 1 · 앱 켤 때 흰 박스: main comet.css 가 아이콘에서 커지는 판을 흰색으로 정함(데스크탑 연출) → 아이폰은 바로 검은 화면이라 그 판도 검정 */
 :root[data-iphone] #zoom { background: #0B0B0B !important; }
+/* 메뉴(☰) 사이드바(M1): main 은 조각 수십 개의 transform 을 translateX(300px) 로 덮어쓰며 밀어 넣어(조각이 원래 가진 transform 을 잃고 매 프레임 따로 다시 그림) 뻑뻑했음
+   → 같은 거리 · 시간 · 곡선을 translate 로, 원래 transform 위에 더함(배치 계산 없음). main 의 시간 · 곡선은 #scr-M1 규칙 그대로 씀 */
+@supports (animation-composition: add) {
+  :root[data-iphone] #scr-M1.in-sheet .sheetpart { animation-name: phInSide; animation-composition: add; }
+  :root[data-iphone] #scr-M1.out-sheet .sheetpart { animation-name: phOutSide; animation-composition: add; }
+}
+@keyframes phInSide { from { translate: 300px 0; } to { translate: 0 0; } }
+@keyframes phOutSide { to { translate: 300px 0; } }
