@@ -320,7 +320,8 @@
   function keyboard() {
     const ae = document.activeElement, typing = typingNow();
     const fig = typing && ae.closest(".fig");
-    const vv = window.visualViewport, vh = vv ? vv.height : innerHeight, kb = Math.max(0, (PH.baseVH || innerHeight) - vh);   // 화면 px — 보이는 높이만큼만 (iOS 가 민 거리는 아래 pinTop 이 되돌림)
+    const vv = window.visualViewport, vh = vv ? vv.height : innerHeight; let kb = Math.max(0, (PH.baseVH || innerHeight) - vh);   // 화면 px — 보이는 높이만큼만 (iOS 가 민 거리는 아래 pinTop 이 되돌림)
+    if (kb > 60) PH.lastKB = kb; else if (typing && performance.now() - (PH.kbAt || 0) < 1500) kb = PH.lastKB || Math.round((PH.baseVH || innerHeight) * .43);   // 키보드가 뜨기 시작한 순간: 다 올라올 때까지 기다리지 않고 지난번 높이로 바로 출발
     pinTop();
     if (typing && fig && kb > 60) {
       const els = [...TAGGED].filter(k => k._phMode === "move" && k.parentElement === fig && k.style.display !== "none" && getComputedStyle(k).display !== "none");
@@ -336,7 +337,8 @@
         const r = fig.getBoundingClientRect();   // 화면 바탕색 = 머리글 아래 왼쪽 끝 한 점 (키보드로 창이 줄어도 늘 보이는 자리)
         const c = colorAt(Math.round(r.left + 3 * PH.s), Math.round(Math.max(0, r.top) + 120 * PH.s));
         const ff = getComputedStyle(fig).filter, unInv = /invert\(1\)/.test(ff) ? (/hue-rotate\(180deg\)/.test(ff) ? "hue-rotate(180deg) invert(1)" : "invert(1)") : "";   // 반전 화면(발산 · invert + hue-rotate) 안에 깔리므로 받침에만 거꾸로 걸어 화면 색 그대로
-        pad.style.cssText = `position:absolute;left:0;width:390px;top:${(top - 12).toFixed(1)}px;height:${(PH.h - top + 12 + 400).toFixed(1)}px;background:rgb(${c.join(",")});pointer-events:none;z-index:1;${unInv ? "filter:" + unInv : ""}`;
+        const cc = c.join(",");   // 위쪽 48px 는 투명 → 바탕색으로 서서히 (뒤 글자를 칼처럼 자르지 않게)
+        pad.style.cssText = `position:absolute;left:0;width:390px;top:${(top - 12 - 48).toFixed(1)}px;height:${(PH.h - top + 12 + 48 + 400).toFixed(1)}px;background:linear-gradient(rgba(${cc},0) 0px, rgb(${cc}) 48px);pointer-events:none;z-index:1;${unInv ? "filter:" + unInv : ""}`;
         pad._phInv = true; if (fig.classList.contains("ph-split")) pad.style.filter = "";   // 발산 화면은 반전을 조각마다 거는데(splitInvert) 받침은 빼고 보이는 색 그대로
         fig.appendChild(pad);
         // 받침(z 1)은 그 화면의 다른 조각 위, 올라간 묶음(z 2)은 받침 위 — 문서 순서상 받침보다 뒤에 있던 글(담은 카드 · 아카이브)이 받침 위로 올라와 겹치던 것
@@ -344,12 +346,12 @@
         lifted.els.forEach(o => { if (o.z !== null) o.k.style.zIndex = "2"; });
       }
       const lift = toPh(kb) - lifted.gap + 8;   // 바 아래 끝과 키보드 사이 8px
-      if (lifted.lift !== lift) { lifted.lift = lift; lifted.els.forEach(o => { o.k.style.transition = "transform .22s cubic-bezier(.2,.8,.2,1)"; o.k.style.transform = `translate3d(0,${(-lift).toFixed(1)}px,0) ${o.tf}`; }); mascotFit(lifted, lift); }
+      if (lifted.lift !== lift) { lifted.lift = lift; lifted.els.forEach(o => { o.k.style.transition = "transform .3s cubic-bezier(.32,.72,0,1)"; o.k.style.transform = `translate3d(0,${(-lift).toFixed(1)}px,0) ${o.tf}`; }); mascotFit(lifted, lift); }
     } else unlift();
   }
   // 채팅창이 올라올 때 마스코트(발산에서는 공 무리)도 같은 시간 · 곡선으로 남는 자리(머리글 아래 ~ 올라간 칩 위)에 맞게 줄이며 올린다 — 바텀시트가 올라올 때처럼
   //   main 의 자리 잡기(transform)는 그대로 두고, 그 위에 translate · scale 만 얹는다(무대 transform-origin 0 0 기준으로 계산)
-  const EASE_KB = "cubic-bezier(.2,.8,.2,1)", HEAD_B = 100;   // 머리글 아래 끝(디자인 px)
+  const EASE_KB = "cubic-bezier(.32,.72,0,1)", HEAD_B = 100;   // 키보드와 같이: iOS 곡선 0.3초 (입력 바 · 받침 · 마스코트 모두)   // 머리글 아래 끝(디자인 px)
   function mascotFit(l, lift) {
     const st = $("stage"); if (!st || st.classList.contains("hid")) return;
     if (!l.st) { const ph = $("phone").getBoundingClientRect(), r = st.getBoundingClientRect(); l.st = { el: st, tr: st.style.transition, cx: (r.left - ph.left) / PH.s + r.width / PH.s / 2, cy: (r.top - ph.top) / PH.s + r.height / PH.s / 2, w: r.width / PH.s, L: [st.offsetLeft, st.offsetTop] }; }
@@ -358,7 +360,7 @@
     const room = l.top - 12 - lift - HEAD_B - 16;   // 머리글 아래 ~ 받침 위 (위아래 8px 씩)
     const k = Math.max(.35, Math.min(.7, room / vis)), cy2 = Math.min(S.cy, HEAD_B + 8 + room / 2 + 0), cx2 = S.cx;
     const tx = cx2 - S.L[0] - k * (S.cx - S.L[0]), ty = cy2 - S.L[1] - k * (S.cy - S.L[1]);
-    S.el.style.transition = `${S.tr ? S.tr + ", " : ""}translate .22s ${EASE_KB}, scale .22s ${EASE_KB}`;
+    S.el.style.transition = `${S.tr ? S.tr + ", " : ""}translate .3s ${EASE_KB}, scale .3s ${EASE_KB}`;
     S.el.style.translate = `${tx.toFixed(1)}px ${ty.toFixed(1)}px`; S.el.style.scale = k.toFixed(4);
   }
   function mascotBack(l) {
@@ -371,6 +373,7 @@
     l.els.forEach(o => { o.k.style.transform = o.tf; setTimeout(() => { o.k.style.transition = o.tr || ""; if (o.z !== null) o.k.style.zIndex = o.z || ""; }, 260); });
     setTimeout(() => l.pad.remove(), 240);
   }
+  addEventListener("focusin", () => { PH.kbAt = performance.now(); keyboard(); }, true);
   function kbWatch() { clearInterval(kbPoll); let n = 0; kbPoll = setInterval(() => { keyboard(); if (++n > 25) clearInterval(kbPoll); }, 60); }   // 키보드 애니메이션 1.5초 동안 따라감
   if (window.visualViewport) { visualViewport.addEventListener("resize", keyboard); visualViewport.addEventListener("scroll", keyboard); }
   addEventListener("resize", keyboard);
@@ -401,6 +404,7 @@
     const els = document.elementsFromPoint(x, y);
     for (let i = els.length - 1; i >= 0; i--) {
       const e = els[i]; if (e === root || e === document.body || e.id === "phDev" || e.id === "phFps") continue;
+      if (e.closest && e.closest(".scr.overlay")) continue;   // 시트 · 어두운 막은 띠 색에 안 넣음 — 막이 페이드되는 중간에 띠만 늦게 한 번에 바뀌어 깜빡였음
       let bg = rgba(getComputedStyle(e).backgroundColor); if (!bg || bg[3] === 0) continue;
       const { inv, op } = layerInfo(e); if (inv % 2) bg = [255 - bg[0], 255 - bg[1], 255 - bg[2], bg[3]];
       const a = bg[3] * op; c = [c[0] + (bg[0] - c[0]) * a, c[1] + (bg[1] - c[1]) * a, c[2] + (bg[2] - c[2]) * a];
@@ -539,12 +543,21 @@
     })();
   }
 
+  // ---------- 마스코트 자리 옮김을 화면 넘김과 같은 곡선으로 ----------
+  //   main(router moveStage)은 마스코트를 0.32초 cubic-bezier(.2,.8,.2,1)로 옮겨, 아이폰 화면 넘김(0.34초 iOS 곡선)과 어긋났음
+  function syncStage() {
+    const st = $("stage"); if (!st) return;
+    new MutationObserver(() => { const t = st.style.transition; if (!t || !/cubic-bezier\(\.2,\s*\.8,\s*\.2,\s*1\)/.test(t)) return;
+      st.style.transition = t.replace(/(\d+)ms cubic-bezier\(\.2,\s*\.8,\s*\.2,\s*1\)/g, (m, ms) => (+ms >= 300 && +ms <= 360 ? 340 : +ms) + "ms cubic-bezier(.32,.72,0,1)"); }).observe(st, { attributes: true, attributeFilter: ["style"] });
+    const an = st.animate.bind(st); st.animate = (kf, o) => { if (o && typeof o === "object" && o.duration === 320) o = { ...o, duration: 340, easing: "cubic-bezier(.32,.72,0,1)" }; return an(kf, o); };   // 숨었다 다시 나올 때 들어오는 움직임
+  }
+
   // ---------- 시작 ----------
   addEventListener("resize", fit); addEventListener("orientationchange", () => setTimeout(fit, 60));
   document.addEventListener("DOMContentLoaded", () => {
     document.body.appendChild(probe); fit(); tagAll(); touchIcon(); if (fpsOn) fpsShow();
     if (COMET.SCR.D1) splitInvert(COMET.SCR.D1.fig);
-    swapDirector(); swapSpring(); swapEngineDraw(); swapMass(); takeDivergeFade(); setTimeout(prefetchImages, 1000);
+    swapDirector(); swapSpring(); swapEngineDraw(); swapMass(); takeDivergeFade(); syncStage(); setTimeout(prefetchImages, 1000);
     // 입구를 열 때마다 서버에서 새로 받게 (sw.js) — 사이트에 올린 것이 앱을 다시 열면 바로 보임. https 에서만
     if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(() => {});
     // 앱처럼 바로 실행: main 의 실행 장면은 바탕화면 아이콘을 눌러야 시작한다 → 아이폰에서는 켜자마자 그 아이콘 누름을 넣는다 (launch_app.js 가 페이지 준비 50ms 뒤부터 받음)

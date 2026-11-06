@@ -20,7 +20,7 @@
 // index.html 을 그대로 읽어 이 문서 안에 이어 쓴다 — 템플릿 · 스크립트 순서 · ?v= 가 데스크탑과 늘 같다.
 // 동기로 읽는 까닭: index.html 의 스크립트들이 '문서를 읽는 중'에 차례로 돌고 DOMContentLoaded 를 기다리는 것이 있어서, 같은 차례로 돌게 하려면 쓰는 중에 끼워 넣어야 한다.
 (function () {
-  var V = { css: "ip1107h", js: "ip1107h" };   // 아이폰 쪽 파일을 고치면 여기 ?v= 를 올린다
+  var V = { css: "ip1107j", js: "ip1107j" };   // 아이폰 쪽 파일을 고치면 여기 ?v= 를 올린다
   var x = new XMLHttpRequest();
   x.open("GET", "/index.html?ip=" + Date.now(), false); x.send(null);
   var s = x.responseText;
@@ -31,7 +31,7 @@
   var body = s.slice(s.indexOf("<body>") + 6, s.lastIndexOf("</body>"));
   document.write(head + '<link rel="stylesheet" href="/iphone.css?v=' + V.css + '">' +
     '</head><body>' + body
-      .replace(/(<script src="\/diverge_slime\.js\?v=[^"]*"><\/script>)/, '$1<script src="/slime_goo_gl.js?v=' + V.js + '"><\/script>')   // 아이폰만: 슬라임 끈적 필터를 GPU 로 (main 파일은 그대로)
+      .replace(/(<script src="\/diverge_slime\.js\?v=[^"]*"><\/script>)/, '$1<script src="/slime_goo_gl.js?v=' + V.js + '"><\/script><script src="/mascot_gl.js?v=' + V.js + '"><\/script>')   // 아이폰만: 슬라임 끈적 필터를 GPU 로 (main 파일은 그대로)
       .replace(/(<script>COMET\.build\(\);)/, '<script src="/iphone.js?v=' + V.js + '"><\/script>$1'));
 })();
 </script>
