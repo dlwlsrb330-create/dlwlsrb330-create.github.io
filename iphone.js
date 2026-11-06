@@ -445,12 +445,32 @@
     };
   }
 
+  // ---------- spring(t, ramp) 같은 값 그대로 표로 ----------
+  //   main(comet5_part2.js)의 spring 은 부를 때마다 0초부터 t 까지를 0.001초씩 다시 적분한다(t 2초면 2,000번). 슬라임 공 여섯 개가 한 프레임에 여러 번 불러 프레임당 수만 번.
+  //   같은 식 · 같은 순서로 한 번만 계산해 두고 꺼내 쓴다(값 같음). 전역 함수라 바꿔 끼우면 슬라임 · 감독 · 엔진이 다 이걸 씀
+  function swapSpring() {
+    if (typeof spring !== "function" || typeof sm !== "function") return;
+    const T = new Map(), z = .6, w = Math.sqrt(200), dt = .001;
+    function table(ramp) {   // A[k] = s_k + dt (계속 돌지 정하는 값), X[k] = k 번 돈 뒤 x — main 과 같은 덧셈 순서
+      let tb = T.get(ramp); if (tb) return tb;
+      const A = [], X = []; let x = 0, v = 0, s = 0;
+      for (;;) { A.push(s + dt); X.push(x); if (s + dt > ramp + 2) break; const tgt = sm((s + dt) / ramp); v += (w * w * (tgt - x) - 2 * z * w * v) * dt; x += v * dt; s += dt; }
+      tb = { A: Float64Array.from(A), X: Float64Array.from(X) }; T.set(ramp, tb); return tb;
+    }
+    window.spring = (t, ramp) => {
+      if (t <= 0) return 0; if (t > ramp + 2) return 1;
+      const { A, X } = table(ramp); let lo = 0, hi = A.length - 1;   // A[k] > t 인 가장 작은 k → main 루프가 멈추는 자리
+      while (lo < hi) { const m = (lo + hi) >> 1; if (A[m] <= t) lo = m + 1; else hi = m; }
+      return X[lo];
+    };
+  }
+
   // ---------- 시작 ----------
   addEventListener("resize", fit); addEventListener("orientationchange", () => setTimeout(fit, 60));
   document.addEventListener("DOMContentLoaded", () => {
     document.body.appendChild(probe); fit(); tagAll(); touchIcon(); if (fpsOn) fpsShow();
     if (COMET.SCR.D1) splitInvert(COMET.SCR.D1.fig);
-    swapDirector();
+    swapDirector(); swapSpring();
     // 입구를 열 때마다 서버에서 새로 받게 (sw.js) — 사이트에 올린 것이 앱을 다시 열면 바로 보임. https 에서만
     if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(() => {});
     // 앱처럼 바로 실행: main 의 실행 장면은 바탕화면 아이콘을 눌러야 시작한다 → 아이폰에서는 켜자마자 그 아이콘 누름을 넣는다 (launch_app.js 가 페이지 준비 50ms 뒤부터 받음)
