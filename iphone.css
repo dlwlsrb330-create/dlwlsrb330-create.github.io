@@ -76,3 +76,15 @@
 }
 @keyframes phInSide { from { translate: 300px 0; } to { translate: 0 0; } }
 @keyframes phOutSide { to { translate: 300px 0; } }
+/* 시트 상자(iphone.js wrapSheets): 화면과 같은 크기 · 자리, 조각 개별 움직임은 끄고 상자만 main 과 같은 거리 · 시간 · 곡선으로 */
+:root[data-iphone] .ph-sw { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+:root[data-iphone] .ph-sw > * { pointer-events: auto; }
+:root[data-iphone] .scr.in-sheet .ph-sw > .sheetpart, :root[data-iphone] .scr.out-sheet .ph-sw > .sheetpart { animation: none !important; }
+:root[data-iphone] .scr.in-sheet .ph-sw { animation: phSwIn .28s cubic-bezier(.2,.8,.2,1); }
+:root[data-iphone] .scr.out-sheet .ph-sw { animation: phSwOut .22s cubic-bezier(.4,0,1,1) forwards; }
+:root[data-iphone] #scr-M1.in-sheet .ph-sw { animation: phSwSideIn .3s cubic-bezier(.2,.8,.2,1); }
+:root[data-iphone] #scr-M1.out-sheet .ph-sw { animation: phSwSideOut .22s cubic-bezier(.4,0,1,1) forwards; }
+@keyframes phSwIn { from { transform: translate3d(0, 40px, 0); } to { transform: none; } }
+@keyframes phSwOut { to { transform: translate3d(0, 60px, 0); opacity: 0; } }
+@keyframes phSwSideIn { from { transform: translate3d(300px, 0, 0); } to { transform: none; } }
+@keyframes phSwSideOut { to { transform: translate3d(300px, 0, 0); } }

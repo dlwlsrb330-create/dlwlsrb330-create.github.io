@@ -17,12 +17,13 @@
   probe.style.cssText = "position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)";
   const typingNow = () => { const a = document.activeElement; return !!(a && a.matches && a.matches("input, textarea, [contenteditable='true']")); };
   function fit() {
-    if (typingNow() && PH.baseVH) return;   // 키보드가 올라와 창이 줄어든 것은 배율을 다시 잡지 않는다 (keyboard 가 입력 바만 올림)
     // 상태 표시줄은 iOS 기본 방식(apple-mobile-web-app-status-bar-style=default): iOS 가 시계 · 배터리 줄을 앱 위에 따로 그리고, 앱은 그 아래만 받는다.
     //   (투명 black-translucent 는 iOS 26 홈 화면 앱에서 아래 63pt 를 앱이 못 써서 잘렸음)
     //   그래서 페이지가 상태 표시줄 밑으로 안 들어가면(safe-area-inset-top ≈ 0) 디자인 맨 위 가짜 상태 표시줄 자리(TOP 54)를 위로 밀어 숨긴다
     if (probe.isConnected) { const cs = getComputedStyle(probe); PH.safeTop = parseFloat(cs.paddingTop) || 0; PH.safeBottom = parseFloat(cs.paddingBottom) || 0; }
-    const TOP = PH.safeTop < 20 ? SB_H : 0, vw = innerWidth, vh = innerHeight; PH.baseVH = vh;
+    const TOP = PH.safeTop < 20 ? SB_H : 0, vw = innerWidth, vh0 = innerHeight;
+    if (PH.baseVW === vw && PH.baseVH && vh0 < PH.baseVH - 1) return;   // 폭은 그대로 높이만 줄어듦 = 키보드 (올라오거나 내려가는 중) → 배율 · 높이를 다시 잡지 않음. 전엔 닫히는 동안 앱 전체가 줄었다 커졌음
+    const vh = vh0; PH.baseVH = vh; PH.baseVW = vw;
     let s = vw / W, h = vh / s + TOP, x = 0;
     if (h < H0) { s = vh / (H0 - TOP); h = H0; x = (vw - W * s) / 2; }   // 디자인보다 짧은 화면: 아래를 끌어올리지 않고 높이에 맞춰 통째로 줄임, 좌우는 바탕색
     PH.s = s; PH.h = h; PH.extra = h - H0; PH.x = x; PH.top = TOP;
@@ -168,7 +169,8 @@
   function sheetParts() {
     const id = COMET.cur(); if (!id || !isOver(id)) return null;
     const scr = COMET.SCR[id]; if (!scr) return null;
-    const parts = [...scr.fig.querySelectorAll(":scope > .sheetpart")].filter(k => k.offsetWidth && getComputedStyle(k).display !== "none");
+    const sw = scr.fig.querySelector(":scope > .ph-sw");
+    const parts = [...scr.fig.querySelectorAll(":scope > .sheetpart, :scope > .ph-sw > .sheetpart")].filter(k => k.offsetWidth && getComputedStyle(k).display !== "none");
     if (!parts.length) return null;
     let big = parts[0], area = 0; for (const k of parts) { const a = k.offsetWidth * k.offsetHeight; if (a > area) { area = a; big = k; } }
     const r = big.getBoundingClientRect(), ph = $("phone").getBoundingClientRect();
@@ -178,7 +180,7 @@
     if (!axis) return null;
     const extra = [...scr.el.querySelectorAll(":scope > .beodial")];
     const dim = scr.fig.querySelector(':scope > [data-name="dim"]');
-    return { id, scr, parts, extra, dim, rect: r, axis };
+    return { id, scr, parts: sw ? [sw] : parts, extra, dim, rect: r, axis };   // 상자가 있으면 상자 하나만 움직임
   }
   function sheetStart(e) {
     if (!ready()) return false; const sp = sheetParts(); if (!sp) return false;
@@ -335,6 +337,7 @@
         const c = colorAt(Math.round(r.left + 3 * PH.s), Math.round(Math.max(0, r.top) + 120 * PH.s));
         const ff = getComputedStyle(fig).filter, unInv = /invert\(1\)/.test(ff) ? (/hue-rotate\(180deg\)/.test(ff) ? "hue-rotate(180deg) invert(1)" : "invert(1)") : "";   // 반전 화면(발산 · invert + hue-rotate) 안에 깔리므로 받침에만 거꾸로 걸어 화면 색 그대로
         pad.style.cssText = `position:absolute;left:0;width:390px;top:${(top - 12).toFixed(1)}px;height:${(PH.h - top + 12 + 400).toFixed(1)}px;background:rgb(${c.join(",")});pointer-events:none;z-index:1;${unInv ? "filter:" + unInv : ""}`;
+        pad._phInv = true; if (fig.classList.contains("ph-split")) pad.style.filter = "";   // 발산 화면은 반전을 조각마다 거는데(splitInvert) 받침은 빼고 보이는 색 그대로
         fig.appendChild(pad);
         // 받침(z 1)은 그 화면의 다른 조각 위, 올라간 묶음(z 2)은 받침 위 — 문서 순서상 받침보다 뒤에 있던 글(담은 카드 · 아카이브)이 받침 위로 올라와 겹치던 것
         lifted = { fig, gap: PH.h - bot, top, pad, els: [...els, pad].map(k => ({ k, tf: k === pad ? "" : (k.style.transform || ""), tr: k === pad ? "" : k.style.transition, z: k === pad ? null : k.style.zIndex })) };
@@ -490,12 +493,39 @@
     m.style.willChange = "transform";
   }
 
+  // ---------- 시트: 조각을 상자 하나에 담아 상자만 움직임 ----------
+  //   main 은 시트(사이드바 · 프로젝트 바꾸기 · 권한 등) 조각 20~40개를 각자 움직여, 열 때마다 조각마다 판을 새로 만들고 그리느라 첫 프레임들이 끊겼다.
+  //   → 아이폰에서는 조각을 보이지 않는 상자(.ph-sw, 화면과 같은 크기 · 자리)에 순서 그대로 옮기고, 같은 거리 · 시간 · 곡선으로 상자 하나만 움직인다(iphone.css). 발산 방식 시트(D2)는 그대로
+  function wrapSheets() {   // 열리고 닫히는 동안만 상자에 담고 끝나면 원래 자리로 (main 코드는 조각을 fig 의 바로 아래 자식으로 찾음)
+    for (const id of OVER()) {
+      if (id === "D2") continue; const scr = COMET.SCR[id]; if (!scr) continue; const el = scr.el, fig = scr.fig;
+      let sw = null, undoT = 0;
+      const unwrap = () => { clearTimeout(undoT); if (!sw) return; const kids = [...sw.children]; kids.forEach(k => sw.before(k)); sw.remove(); sw = null; };
+      const wrap = (ms) => {
+        if (!sw) { const parts = [...fig.children].filter(k => k.classList.contains("sheetpart")); if (!parts.length) return;
+          sw = document.createElement("div"); sw.className = "ph-sw"; parts[0].before(sw); parts.forEach(k => sw.appendChild(k)); }
+        clearTimeout(undoT); undoT = setTimeout(unwrap, ms);
+      };
+      const had = (v, c) => (" " + (v || "") + " ").includes(" " + c + " ");
+      new MutationObserver((recs) => {   // 라우터는 다시 열 때 in-sheet 를 뗐다 같은 순간 다시 붙임 → 바뀌기 전 값에 없던 기록이 하나라도 있으면 새로 열린 것
+        if (el.classList.contains("in-sheet") && recs.some(r => !had(r.oldValue, "in-sheet"))) wrap(360);
+        if (el.classList.contains("out-sheet") && recs.some(r => !had(r.oldValue, "out-sheet"))) wrap(300);
+      }).observe(el, { attributes: true, attributeFilter: ["class"], attributeOldValue: true });
+    }
+  }
+  // ---------- 화면 그림 미리 받기 ----------
+  //   main(router.js wake)은 화면이 처음 보일 때에야 그 화면 그림(SVG 아이콘 수십 개)을 받기 시작해 넘김 애니메이션과 겹쳐 끊겼다 → 켜고 1초 뒤 전부 받아 풀어 둠
+  function prefetchImages() {
+    const imgs = [...document.querySelectorAll("#screens img[data-src]")]; let i = 0;
+    (function step() { const end = Math.min(imgs.length, i + 20); for (; i < end; i++) { const im = imgs[i]; if (!im.dataset.src) continue; im.src = im.dataset.src; im.removeAttribute("data-src"); if (im.decode) im.decode().catch(() => {}); } if (i < imgs.length) setTimeout(step, 30); })();
+  }
+
   // ---------- 시작 ----------
   addEventListener("resize", fit); addEventListener("orientationchange", () => setTimeout(fit, 60));
   document.addEventListener("DOMContentLoaded", () => {
     document.body.appendChild(probe); fit(); tagAll(); touchIcon(); if (fpsOn) fpsShow();
     if (COMET.SCR.D1) splitInvert(COMET.SCR.D1.fig);
-    swapDirector(); swapSpring(); swapEngineDraw(); swapMass();
+    swapDirector(); swapSpring(); swapEngineDraw(); swapMass(); wrapSheets(); setTimeout(prefetchImages, 1000);
     // 입구를 열 때마다 서버에서 새로 받게 (sw.js) — 사이트에 올린 것이 앱을 다시 열면 바로 보임. https 에서만
     if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(() => {});
     // 앱처럼 바로 실행: main 의 실행 장면은 바탕화면 아이콘을 눌러야 시작한다 → 아이폰에서는 켜자마자 그 아이콘 누름을 넣는다 (launch_app.js 가 페이지 준비 50ms 뒤부터 받음)
