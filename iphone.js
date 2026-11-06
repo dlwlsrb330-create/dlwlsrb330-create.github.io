@@ -374,7 +374,7 @@
   addEventListener("focusin", kbWatch); addEventListener("focusout", kbWatch);
   // 키보드가 올라오면 iOS 가 입력칸을 보이게 하려고 페이지를 위로 민다. 전엔 맨 위로 되돌려(scrollTo) 화면이 한 번 튀었음 →
   //   되돌리지 않고 민 만큼 앱 화면을 반대로 내려 상단 메뉴가 제자리에 있게 (입력 바는 keyboard 가 키보드 위로)
-  function pinTop() { const vv = window.visualViewport, y = (window.scrollY || 0) + (vv ? vv.offsetTop : 0); root.style.setProperty("--ph-ty", y.toFixed(1) + "px"); }
+  function pinTop() { const vv = window.visualViewport, y = vv ? vv.pageTop : (window.scrollY || 0); root.style.setProperty("--ph-ty", Math.max(0, y).toFixed(1) + "px"); }   // 문서 맨 위 ~ 보이는 영역 맨 위 = iOS 가 민 거리 하나 (전엔 scrollY + offsetTop 으로 두 번 더해 화면 전체가 내려갔음)
   addEventListener("scroll", pinTop, { passive: true }); if (window.visualViewport) visualViewport.addEventListener("scroll", pinTop);
   addEventListener("focusout", () => setTimeout(() => { if (!typingNow()) { window.scrollTo(0, 0); pinTop(); } }, 300));   // 키보드가 다 내려간 뒤에만 제자리로
 
