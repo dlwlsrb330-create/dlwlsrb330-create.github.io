@@ -53,6 +53,8 @@
   // ---------- ①-2 팀원 초대 시트(M2-2) '완료' 뺌 — 닫기만 하는 단추였음(✕ · 바깥 누르기 · 끌어 내리기로 이미 닫힘) ----------
   (() => {
     const f = tpl("M2-2"); if (!f) return; const b = f.querySelector('[data-name="btn 완료"]'); if (!b) return; const T = N(b, "top");
+    // '김민지' 아바타 글자: 템플릿 글자는 '민' → '김' (이름 첫 글자, 다른 줄 '인' · 'C' 와 같게)
+    const kimL = [...f.querySelectorAll(":scope > p")].find(p => p.textContent.trim() === "민" && N(p, "left") === 42); if (kimL) kimL.textContent = "김";
     b.style.display = "none"; [...f.querySelectorAll(":scope > p")].filter(p => p.textContent.trim() === "완료" && Math.abs(N(p, "top") - T) < 40).forEach(p => p.style.display = "none");
     // '보냄'(이미 초대한 사람)이 글자만 오른쪽 끝에 붙어 위 '초대' 알약과 가운데 · 높이가 안 맞았음 → 같은 자리 · 같은 크기 알약, 옅은 바탕 · 회색 글(눌리지 않는 상태)
     const pills = [...f.querySelectorAll('[data-name="btn 초대"]')].sort((x, y) => N(x, "top") - N(y, "top")), sent = [...f.querySelectorAll(":scope > p")].find(p => p.textContent.trim() === "보냄");
@@ -61,10 +63,10 @@
   })();
 
   // ---------- ② 토글 손잡이 ----------
-  for (const id of ["S1", "M3-D", "OB-3-1"]) {
-    const f = tpl(id); if (!f) continue;
-    f.querySelectorAll('[data-name="knob"]').forEach(k => { k.style.filter = "brightness(0) invert(1) drop-shadow(0 1px 2px rgba(0,0,0,.22))"; });
-  }
+  //   11-06 진규: 세 화면만 고쳐서 자료 · ai 연결 상세 · 녹음 확인 · 연결 시트 등 26 화면은 꺼진 손잡이가 아직 진했음 → 토글 있는 모든 화면
+  document.querySelectorAll("template").forEach(t => {
+    t.content.querySelectorAll('[data-name="knob"]').forEach(k => { k.style.filter = "brightness(0) invert(1) drop-shadow(0 1px 2px rgba(0,0,0,.22))"; });
+  });
 
   // ---------- ③ 화면 모드 · 글자 크기 ----------
   (() => {
@@ -89,5 +91,79 @@
     for (const row of FLOW) { if (row[0] === "S0" && row[1] === "text=화면 모드") row[2] = "S2-M"; if (row[0] === "S0" && row[1] === "text=글자 크기") row[2] = "S2-F"; }
     FLOW.push(["S2-M", "btn 뒤로", "", "back"], ["S2-F", "btn 뒤로", "", "back"]);
     if (typeof MASCOT !== "undefined" && MASCOT.S2) { MASCOT["S2-M"] = MASCOT.S2; MASCOT["S2-F"] = MASCOT.S2; }
+  })();
+
+  // ---------- ④ 11-06 진규: 연결 · 팀 · 휴지통 — 머리글 아래 첫 묶음 제목은 팀 화면 '멤버 3' 과 같게 (머리글 아래 끝 96 + 16 = 112, 13px · 500 · #6b6484) ----------
+  const LABEL = (p) => Object.assign(p.style, { fontSize: "13px", fontWeight: "500", color: "#6b6484" });
+  const shift = (f, from, to, dy) => [...f.children].forEach(k => { const t = N(k, "top"); if (t >= from && t < to) k.style.top = (t + dy) + "px"; });
+  const P_ = (f, re) => [...f.querySelectorAll(":scope > p")].find(p => re.test(p.textContent.trim()));
+  (() => {   // ai 연결(M4-A): 위 설명 글 뺌, '연결됨 2' 앞 점 뺌 → 제목을 112 로, 아래 전부 같이 올림
+    const f = tpl("M4-A"); if (!f) return; const d = P_(f, /^쓰던 ai/), lab = P_(f, /^연결됨 \d/), dot = f.querySelector('[data-name="상태 점"]'); if (!lab) return;
+    if (d) d.style.display = "none"; if (dot) dot.style.display = "none";
+    const dy = 112 - N(lab, "top"); shift(f, N(lab, "top") - 6, 820, dy); lab.style.left = "24px"; LABEL(lab);
+  })();
+  (() => {   // 자료 연결(M3-C): '연결됨' 이 머리글에 4px 붙어 있었음 → 112, '더 연결하기' 와 같은 꼴
+    const f = tpl("M3-C"); if (!f) return; const lab = P_(f, /^연결됨$/); if (!lab) return;
+    shift(f, N(lab, "top"), 820, 112 - N(lab, "top")); LABEL(lab); const more = P_(f, /^더 연결하기$/); if (more) LABEL(more);
+  })();
+  (() => {   // 팀(M2): 오른쪽 위 … 단추 뺌 (권한은 줄마다 바꿈)
+    const f = tpl("M2"); if (!f) return; f.querySelectorAll('[data-name="btn more"], [data-name="icon more"]').forEach(k => k.style.display = "none");
+  })();
+  (() => {   // 휴지통(M5): 위 설명 글을 목록 아래 옅은 글로, 목록은 112 부터
+    const f = tpl("M5"); if (!f) return; const d = P_(f, /^30일이 지나면/), first = P_(f, /만든 기록$/); if (!d || !first) return;
+    const dy = 112 - N(first, "top"); shift(f, N(d, "top") + 4, 760, dy);
+    const groups = [...f.children].filter(k => /^휴지통 그룹/.test(k.dataset.name || "")), last = groups.sort((a, b) => N(b, "top") - N(a, "top"))[0];
+    const ds = [...f.querySelectorAll(":scope > p")].filter(p => /^30일이 지나면/.test(p.textContent.trim()));   // 템플릿에 같은 글이 두 벌
+    ds.forEach(d => Object.assign(d.style, { top: (last ? N(last, "top") + N(last, "height") + 12 : 492) + "px", fontSize: "12px", fontWeight: "400", color: "#6b6484" }));
+  })();
+  // 연결 상세 화면들(자료 · ai): 내용이 머리글 아래 끝 96 에 바로 붙어 있었음 → 16 띄워 112 부터. 아래 끝 단추(760)는 그대로
+  for (const id of ["M3-D", "M3-N", "M3-G", "M3-K", "M3-L", "M3-MD", "M3-SL", "M4-GPT", "M4-CL", "M4-GE", "M4-PX", "M4-CP"]) { const f = tpl(id); if (f) shift(f, 90, 740, 16); }
+
+  // ---------- ⑤ 11-06 진규: 관리 · 연결 · 휴지통 · 설정 화면 간격 · 글자 꼴 한 규칙으로 ----------
+  //   묶음 제목 = 13px · 500 · #6b6484 (왼쪽 24). 제목 위 끝 → 묶음 위 끝 24, 묶음 아래 끝 → 다음 제목 위 끝 24. 첫 제목(또는 첫 내용)은 112.
+  //   줄 제목 15px · 500 · #1a1626, 상태 · 단추 글자 13px · 500, '연결 끊기'는 빨강 #d42a1a. 아래 끝 단추(760~)와 홈 표시줄은 그대로
+  const FLOWED = ["M2", "M3-C", "M3-D", "M3-N", "M3-G", "M3-K", "M3-L", "M3-MD", "M3-SL", "M4-A", "M4-GPT", "M4-CL", "M4-GE", "M4-PX", "M4-CP", "M5", "S0", "S1", "OB-3-1"];
+  const vis = (k) => k.style.display !== "none" && !k.dataset.sb;
+  const fs = (k) => parseFloat(k.style.fontSize) || 0, fw = (k) => String(k.style.fontWeight || "");
+  const H = (k) => { const h = N(k, "height"); if (h) return h; const lh = parseFloat(k.style.lineHeight); return lh || Math.round((fs(k) || 14) * 1.25); };
+  const isLabel = (k) => k.tagName === "P" && N(k, "left") === 24 && fs(k) === 13 && /500|700/.test(fw(k)) && vis(k) && k.textContent.trim().length < 24;
+  for (const id of FLOWED) {
+    const f = tpl(id); if (!f) continue;
+    const body = [...f.children].filter(k => vis(k) && N(k, "top") >= 90 && N(k, "top") < 740 && !/btn 뒤로|icon back/.test(k.dataset.name || ""));
+    // 글자 꼴
+    for (const k of body) {
+      if (k.tagName !== "P") continue; const c = (k.style.color || "").replace(/\s/g, "").toLowerCase();
+      if (isLabel(k)) Object.assign(k.style, { fontWeight: "500", color: "#6b6484" });
+      else if (fs(k) === 15 && /4a4361|rgb\(74,67,97\)/.test(c) && fw(k) === "400" && !/초대$/.test(k.textContent.trim())) Object.assign(k.style, { fontWeight: "500", color: "#1a1626" });
+      else if (fs(k) === 12 && fw(k) === "500") k.style.fontSize = "13px";
+    }
+    // 지우는 · 끊는 단추 글자는 진한 색 하나로 — 주형 noAccent(포인트 주황 · 빨강 → 잉크)가 보이는 화면만 바꿔서 화면마다 빨강 / 진한 색이 섞였음
+    f.querySelectorAll(":scope > p").forEach(k => { if (/^(연결 끊기|휴지통 비우기)$/.test(k.textContent.trim())) k.style.color = "#1c1730"; });
+    // 와이어프레임 주석(화면 이동 설명) 뺌
+    [...f.children].forEach(k => { if (k.textContent.length < 160 && /→ S\d|_알림|관리 항목\(/.test(k.textContent)) k.style.display = "none"; });
+    // 간격: 묶음 제목 기준으로 다시 쌓기
+    const labels = body.filter(isLabel).sort((a, b) => N(a, "top") - N(b, "top")); if (!labels.length) continue;
+    const t0 = Math.min(...body.map(k => N(k, "top")));
+    let cursor = t0 < N(labels[0], "top") ? null : 112;   // 첫 제목 앞에 다른 내용(로고 · 이름 등)이 있으면 그 덩어리는 그대로 두고 바로 뒤부터
+    if (cursor === null) { const pre = body.filter(k => N(k, "top") < N(labels[0], "top")); const preMin = Math.min(...pre.map(k => N(k, "top"))); const d0 = 112 - preMin; pre.forEach(k => k.style.top = (N(k, "top") + d0) + "px"); cursor = Math.max(...pre.map(k => N(k, "top") + H(k))) + 24; }
+    const tops = labels.map(l => N(l, "top"));
+    labels.forEach((lab, i) => {
+      const from = tops[i], to = i + 1 < tops.length ? tops[i + 1] : 740;
+      const block = body.filter(k => k !== lab && N(k, "top") > from && N(k, "top") < to);
+      const dl = cursor - from; lab.style.top = cursor + "px";
+      if (block.length) { const bMin = Math.min(...block.map(k => N(k, "top"))); const db = (cursor + 24) - bMin; block.forEach(k => k.style.top = (N(k, "top") + db) + "px"); cursor = Math.max(...block.map(k => N(k, "top") + H(k))) + 24; }
+      else cursor += 24 + 24;
+    });
+  }
+  // 연필 아이콘(수정): 선이 x 4~19 · y 5~20 에 끝이 왼쪽 아래라 동그라미 안에서 왼쪽 아래로 치우쳐 보였음 → 오른쪽 1 · 위 1
+  document.querySelectorAll("template").forEach(t => t.content.querySelectorAll('[data-name="icon 연필"]').forEach(k => { k.style.left = (N(k, "left") + 1) + "px"; k.style.top = (N(k, "top") - 1) + "px"; }));
+  // 휴지통 '되살리기': 알약 → 담은 카드 '발산하기 ›' 와 같은 글 단추(13px · 500 · 진한 색, 설명 줄 오른쪽 끝 358). 알약 자리는 투명한 누름 칸으로 남김(flow.js btn 되살리기)
+  (() => {
+    const f = tpl("M5"); if (!f) return;
+    [...f.children].filter(k => k.dataset.name === "btn 되살리기" && k.style.display !== "none").forEach(btn => {
+      const T = N(btn, "top"), lab = [...f.querySelectorAll(":scope > p")].find(p => p.textContent.trim() === "되살리기" && Math.abs(N(p, "top") - T) < 10); const y = T + 13;
+      Object.assign(btn.style, { top: y + "px", left: "238px", width: "120px", height: "24px", backgroundColor: "transparent", border: "0" });
+      if (lab) { lab.textContent = "되살리기 ›"; Object.assign(lab.style, { top: y + "px", left: "238px", width: "120px", translate: "none", textAlign: "right", fontSize: "13px", fontWeight: "500", lineHeight: "24px", color: "#4a4361", pointerEvents: "none" }); }
+    });
   })();
 })();

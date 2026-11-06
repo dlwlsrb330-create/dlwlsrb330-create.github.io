@@ -35,7 +35,7 @@ const SEED = (() => {
     .seedpop .r i { flex: none; font: normal 400 12px/16px ${FONT}; color: #6b6484; }
     .seedpop .more { display: block; padding: 8px 10px 6px; font: 500 13px/18px ${FONT}; color: #6b6484; cursor: pointer; }
     .seedd2 { position: absolute; top: 266px; left: 150px; width: 220px; height: 22px; text-align: right; font: 500 12px/22px ${FONT}; color: #6b6484; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .seedgo { position: absolute; top: 42px; height: 24px; padding: 0; font: 500 13px/24px ${FONT}; color: #1a1626; white-space: nowrap; cursor: pointer; user-select: none; }   /* 11-06 진규 3차: 알약(카드 세로 가운데) → 제목 줄 오른쪽 글 단추 (기록 목록 시간 자리 문법) */
+    .seedgo { position: absolute; top: 42px; height: 24px; padding: 0; font: 500 13px/24px ${FONT}; color: #4a4361; white-space: nowrap; cursor: pointer; user-select: none; }   /* 11-06 진규 3차: 알약(카드 세로 가운데) → 제목 줄 오른쪽 글 단추 (기록 목록 시간 자리 문법) */
     .scr.dark .fig > .seedchip, .scr.dark .fig > .seedrow, .scr.dark .fig > .seedarch, .scr.dark .fig > .seedpop, .seedgo { filter: invert(1) hue-rotate(180deg); }   /* 반전 화면(D1 · D5) 안에서 제 색으로 */`;
   document.head.appendChild(css);
 

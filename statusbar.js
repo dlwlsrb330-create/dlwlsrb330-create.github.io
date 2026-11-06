@@ -43,7 +43,7 @@
     const circles = [...f.children].filter(k => /^아바타/.test(k.dataset.name || "") && N(k, "width") >= 20 && Math.abs(N(k, "width") - N(k, "height")) < 1);
     for (const p of f.querySelectorAll(":scope > p")) {
       if (p.textContent.trim().length > 2) continue;
-      const c = circles.find(k => Math.abs(N(p, "top") - N(k, "top")) < N(k, "height") && Math.abs(N(p, "left") - (N(k, "left") + N(k, "width") / 2)) < 3);
+      const c = circles.filter(k => Math.abs(N(p, "top") - N(k, "top")) < N(k, "height") && Math.abs(N(p, "left") - (N(k, "left") + N(k, "width") / 2)) < 3).sort((x, y) => Math.abs(N(p, "top") - N(x, "top") - 9) - Math.abs(N(p, "top") - N(y, "top") - 9))[0];   // 11-06: 가장 가까운 원 — 전엔 처음 걸린 원이라 팀원 초대 시트의 '김민지' 글자가 뒤에 숨은 팀 화면 원(304)으로 들어갔음
       if (!c) continue;
       // 11-05 진규 2차: 글자를 원 안(자식)으로 옮김 — 화면을 그릴 때 router 목록 줄 정렬이 원만 내려(M2 에서 4.5px) 글자가 위로 떠 있었음. 이제 원이 움직이면 글자도 같이
       Object.assign(p.style, { left: "0px", top: ".5px", width: "100%", height: `${N(c, "height")}px`, lineHeight: `${N(c, "height")}px`, translate: "none", margin: "0" });   // +.5: 글꼴 윗부분이 아래보다 길어 줄 가운데에 두면 0.5~1px 위로 보임
@@ -126,5 +126,19 @@
       if (!to) continue; const d = (w - to) / 2;
       Object.assign(k.style, { left: `${N(k, "left") + d}px`, top: `${N(k, "top") + d}px`, width: `${to}px`, height: `${to}px` });
     }
+  }
+})();
+
+// 11-06 진규: 온보딩 위 여백을 다른 화면과 같게 — 머리글(뒤로 60 · 건너뛰기)은 다른 화면과 같은데 내용이 126 에서 시작했음(다른 화면 112 = 머리글 아래 끝 96 + 16).
+//   마스코트 큰 화면은 내용을 112 부터(아래 단계 점 700 · 버튼 736 은 그대로),
+//   온보딩 연결 상세(OB-3-1)는 로고가 머리글 아래 끝 96 에 붙어 있어 관리 쪽 연결 상세와 같게 112 부터. ob_invite_page(OB-INV 를 만듦) 뒤 · COMET.build 전에 돈다
+(() => {
+  const N = (k, a) => parseFloat(k.style[a]) || 0;
+  for (const id of ["OB-1", "OB-2", "OB-INV", "OB-3", "OB-3-1"]) {
+    const t = document.getElementById("tpl-" + id), f = t && t.content.querySelector(".fig"); if (!f) continue;
+    const kids = [...f.children].filter(k => !k.dataset.sb);
+    const body = kids.filter(k => N(k, "top") >= 90 && N(k, "top") < (id === "OB-3-1" ? 740 : 690));
+    if (!body.length) continue; const first = Math.min(...body.map(k => N(k, "top"))), dy = 112 - first;
+    body.forEach(k => k.style.top = (N(k, "top") + dy) + "px");
   }
 })();

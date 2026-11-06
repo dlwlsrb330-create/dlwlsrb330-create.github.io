@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default"><!-- 투명(black-translucent)은 iOS 26 홈 화면 앱에서 아래 63pt 가 잘려서 기본으로. 색은 theme-color(iphone.js 가 화면 바탕색으로 바꿈) -->
 <meta name="apple-mobile-web-app-title" content="comet">
 <meta name="format-detection" content="telephone=no">
-<meta name="theme-color" content="#FCFCFA">
+<meta name="theme-color" content="#0B0B0B">
 <link rel="manifest" href="/manifest.webmanifest?v=ip1106a">
 <link rel="icon" type="image/svg+xml" href="/icon.svg?v=ip1106a">
 <!-- 홈 화면 아이콘: iOS 는 SVG 아이콘을 안 읽어서, icon.svg 를 열 때마다 180px 그림으로 그려 이 자리에 넣는다(iphone.js). 그림 파일은 저장소에 없음 -->
@@ -19,7 +19,7 @@
 // index.html 을 그대로 읽어 이 문서 안에 이어 쓴다 — 템플릿 · 스크립트 순서 · ?v= 가 데스크탑과 늘 같다.
 // 동기로 읽는 까닭: index.html 의 스크립트들이 '문서를 읽는 중'에 차례로 돌고 DOMContentLoaded 를 기다리는 것이 있어서, 같은 차례로 돌게 하려면 쓰는 중에 끼워 넣어야 한다.
 (function () {
-  var V = { css: "ip1106n", js: "ip1106n" };   // 아이폰 쪽 파일을 고치면 여기 ?v= 를 올린다
+  var V = { css: "ip1106q", js: "ip1106q" };   // 아이폰 쪽 파일을 고치면 여기 ?v= 를 올린다
   var x = new XMLHttpRequest();
   x.open("GET", "/index.html?ip=" + Date.now(), false); x.send(null);
   var s = x.responseText;
@@ -29,7 +29,9 @@
     .replace(/<title>[\s\S]*?<\/title>/i, "");
   var body = s.slice(s.indexOf("<body>") + 6, s.lastIndexOf("</body>"));
   document.write(head + '<link rel="stylesheet" href="/iphone.css?v=' + V.css + '">' +
-    '</head><body>' + body.replace(/(<script>COMET\.build\(\);)/, '<script src="/iphone.js?v=' + V.js + '"><\/script>$1'));
+    '</head><body>' + body
+      .replace(/(<script src="\/diverge_slime\.js\?v=[^"]*"><\/script>)/, '$1<script src="/slime_goo_gl.js?v=' + V.js + '"><\/script>')   // 아이폰만: 슬라임 끈적 필터를 GPU 로 (main 파일은 그대로)
+      .replace(/(<script>COMET\.build\(\);)/, '<script src="/iphone.js?v=' + V.js + '"><\/script>$1'));
 })();
 </script>
 </head>

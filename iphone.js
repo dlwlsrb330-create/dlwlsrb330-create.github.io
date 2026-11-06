@@ -318,17 +318,33 @@
     const fig = typing && ae.closest(".fig");
     const vv = window.visualViewport, seen = vv ? vv.offsetTop + vv.height : innerHeight, kb = Math.max(0, (PH.baseVH || innerHeight) - seen);   // 화면 px
     if (typing && fig && kb > 60) {
-      const els = [...TAGGED].filter(k => k._phMode === "move" && k.parentElement === fig);
+      const els = [...TAGGED].filter(k => k._phMode === "move" && k.parentElement === fig && k.style.display !== "none" && getComputedStyle(k).display !== "none");
       const mine = els.some(k => k === ae || k.contains(ae));
       if (!mine) { unlift(); return; }
-      const lift = toPh(kb);   // 입력 바 아래 여백(디자인의 홈 표시줄 자리)째로 키보드 위에 붙인다
-      if (!lifted || lifted.fig !== fig) { unlift(); lifted = { fig, els: els.map(k => ({ k, tf: k.style.transform || "", tr: k.style.transition })) }; }
+      if (!lifted || lifted.fig !== fig) {
+        unlift();
+        // 입력 바(그 묶음의 맨 아래 끝)를 키보드 바로 위에 붙인다 — 전엔 디자인의 홈 표시줄 여백째로 올려 키보드와 떨어져 있었음
+        const tops = els.map(k => topOf(k)), bots = els.map(k => topOf(k) + k.offsetHeight);
+        const top = Math.min(...tops), bot = Math.max(...bots);
+        // 받침: 올라간 묶음(추천 칩 · 입력 바) 뒤에 화면 바탕색 판을 깐다 — 그 뒤 제목 · 공이 비쳐 겹치던 것. 키보드가 덮는 아래쪽과 같은 이치(앱처럼 아래가 가려짐)
+        const pad = document.createElement("div"); pad.className = "ph-kb-pad";
+        const r = fig.getBoundingClientRect();   // 화면 바탕색 = 머리글 아래 왼쪽 끝 한 점 (키보드로 창이 줄어도 늘 보이는 자리)
+        const c = colorAt(Math.round(r.left + 3 * PH.s), Math.round(Math.max(0, r.top) + 120 * PH.s));
+        const ff = getComputedStyle(fig).filter, unInv = /invert\(1\)/.test(ff) ? (/hue-rotate\(180deg\)/.test(ff) ? "hue-rotate(180deg) invert(1)" : "invert(1)") : "";   // 반전 화면(발산 · invert + hue-rotate) 안에 깔리므로 받침에만 거꾸로 걸어 화면 색 그대로
+        pad.style.cssText = `position:absolute;left:0;width:390px;top:${(top - 12).toFixed(1)}px;height:${(PH.h - top + 12 + 400).toFixed(1)}px;background:rgb(${c.join(",")});pointer-events:none;z-index:1;${unInv ? "filter:" + unInv : ""}`;
+        fig.appendChild(pad);
+        // 받침(z 1)은 그 화면의 다른 조각 위, 올라간 묶음(z 2)은 받침 위 — 문서 순서상 받침보다 뒤에 있던 글(담은 카드 · 아카이브)이 받침 위로 올라와 겹치던 것
+        lifted = { fig, gap: PH.h - bot, pad, els: [...els, pad].map(k => ({ k, tf: k === pad ? "" : (k.style.transform || ""), tr: k === pad ? "" : k.style.transition, z: k === pad ? null : k.style.zIndex })) };
+        lifted.els.forEach(o => { if (o.z !== null) o.k.style.zIndex = "2"; });
+      }
+      const lift = toPh(kb) - lifted.gap + 8;   // 바 아래 끝과 키보드 사이 8px
       if (lifted.lift !== lift) { lifted.lift = lift; lifted.els.forEach(o => { o.k.style.transition = "transform .22s cubic-bezier(.2,.8,.2,1)"; o.k.style.transform = `translate3d(0,${(-lift).toFixed(1)}px,0) ${o.tf}`; }); }
     } else unlift();
   }
   function unlift() {
     if (!lifted) return; const l = lifted; lifted = null;
-    l.els.forEach(o => { o.k.style.transform = o.tf; setTimeout(() => { o.k.style.transition = o.tr || ""; }, 260); });
+    l.els.forEach(o => { o.k.style.transform = o.tf; setTimeout(() => { o.k.style.transition = o.tr || ""; if (o.z !== null) o.k.style.zIndex = o.z || ""; }, 260); });
+    setTimeout(() => l.pad.remove(), 240);
   }
   function kbWatch() { clearInterval(kbPoll); let n = 0; kbPoll = setInterval(() => { keyboard(); if (++n > 25) clearInterval(kbPoll); }, 60); }   // 키보드 애니메이션 1.5초 동안 따라감
   if (window.visualViewport) { visualViewport.addEventListener("resize", keyboard); visualViewport.addEventListener("scroll", keyboard); }
@@ -351,7 +367,7 @@
     const shown = (e) => e && e.style.display !== "none" && getComputedStyle(e).display !== "none";
     const covers = (e, round) => { const m = e.getBoundingClientRect(); if (m.width < 4) return false; if (!round) return x > m.left && x < m.right && y > m.top && y < m.bottom;
       const dx = (x - m.left - m.width / 2) / (m.width / 2), dy = (y - m.top - m.height / 2) / (m.height / 2); return dx * dx + dy * dy < 1; };
-    if (shown(home) && +getComputedStyle(home).opacity > .5) return shown(zoom) && +getComputedStyle(zoom).opacity > .5 && covers(zoom, false) ? [11, 11, 11] : [42, 47, 58];   // #home 그라데이션 위 색 · #zoom var(--ink)
+    if (!root.classList.contains("ph-launched")) return [11, 11, 11];   // 실행 전 · 실행 판이 커지는 동안: 검정 (가짜 바탕화면은 아이폰에서 안 보임)
     let c = [252, 252, 250];   // #phone var(--bg)
     const els = document.elementsFromPoint(x, y);
     for (let i = els.length - 1; i >= 0; i--) {
@@ -377,6 +393,15 @@
   addEventListener("resize", fit); addEventListener("orientationchange", () => setTimeout(fit, 60));
   document.addEventListener("DOMContentLoaded", () => {
     document.body.appendChild(probe); fit(); tagAll(); touchIcon(); if (fpsOn) fpsShow();
+    // 앱처럼 바로 실행: main 의 실행 장면은 바탕화면 아이콘을 눌러야 시작한다 → 아이폰에서는 켜자마자 그 아이콘 누름을 넣는다 (launch_app.js 가 페이지 준비 50ms 뒤부터 받음)
+    (function autoLaunch() {
+      const icon = $("icon"), home = $("home"), zoom = $("zoom"); if (!icon || !home) return;
+      if (home.style.display === "none") { root.classList.add("ph-launched"); return; }   // 실행 판이 다 커져 바탕화면을 치우면 끝
+      if (!zoom || zoom.style.opacity !== "1") {   // 아직 안 받아짐(실행 판이 안 커지기 시작함) → 아이콘 누름을 다시 넣음. body 에 넣어 화면 쪽 누름 처리로는 안 감
+        const r = icon.getBoundingClientRect(); document.body.dispatchEvent(new MouseEvent("click", { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, bubbles: true, cancelable: true }));
+      }
+      setTimeout(autoLaunch, 40);
+    })();
     // 화면이 바뀔 때마다(나중에 붙는 조각까지) 다시 찾는다
     new MutationObserver(() => requestAnimationFrame(() => { const id = COMET.cur(); if (id && COMET.SCR[id]) { tagFig(COMET.SCR[id].fig); shiftAll(); } paintBg(); if (PH.bgPoke) PH.bgPoke(); })).observe(document.body, { attributes: true, attributeFilter: ["data-screen"] });
     paintBg();

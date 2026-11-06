@@ -235,7 +235,7 @@ const COMET = (() => {
     b.style.left = (r.left - ph.left + r.width * .80).toFixed(0) + "px"; b.style.top = (r.top - ph.top + r.height * .10).toFixed(0) + "px"; b.style.setProperty("--s", s.toFixed(2));
     $("phone").appendChild(b); setTimeout(() => b.remove(), 1300);
     const g = $("gl"); if (g && g.animate) g.animate([{ transform: "scale(1)" }, { transform: "scale(1.14)", offset: .35 }, { transform: "scale(.97)", offset: .7 }, { transform: "scale(1)" }], { duration: 520, easing: "cubic-bezier(.3,1.5,.5,1)" });
-    if (__m.flashColor) __m.flashColor("happy", now());
+    if (__m.flashColor && !/^OB/.test(cur())) __m.flashColor("happy", now());   // 11-06 진규: 온보딩에선 전구가 될 때 몸이 노랗게 물드는 것 뺌
   }
   // 실행 장면: 홈 글은 줄무늬가 다 열린 뒤(L.ui) 위쪽 줄부터 차례로 14px 올라오며 나타난다 (런처 자체 홈 글과 같은 시각표)
   function launchReveal(ts) {

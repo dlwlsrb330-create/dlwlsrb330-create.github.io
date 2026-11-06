@@ -129,7 +129,8 @@ const APP5 = (() => {
     for (const r of shown) {
       const { tile, icon, title, sub, time } = r.parts, tw = tile.offsetWidth || 36, th = tile.offsetHeight || 36, cx = X0 + tw / 2, cy = th / 2;
       if (r.date !== lastDate) {
-        if (lastDate) { y += 6; line(`left:${X0}px;top:${y}px;width:${370 - X0}px;height:1px;background:rgba(20,15,36,.07)`); y += 16; }
+        // 11-06 진규: 날짜 글자 아래 → 줄 묶음 12 와 같게, 줄 묶음 아래 → 구분선도 12 (전엔 26 이라 묶음이 위로 붙어 보였음)
+        if (lastDate) { y -= 8; line(`left:${X0}px;top:${y}px;width:${370 - X0}px;height:1px;background:rgba(20,15,36,.07)`); y += 16; }
         const h = r._head || (r._head = clone(dateP)); h.textContent = r.date; put(h, X0, y);
         y += (h.offsetHeight || 15) + 12; lastDate = r.date; prevBottom = null;
       }

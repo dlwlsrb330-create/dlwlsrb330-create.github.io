@@ -204,8 +204,7 @@ const SLIME = (() => {
       const cl = BEODIAL.color(); orb.tSpeed = 1.8; orb.tDist = 1;   /* 시트가 열려 있는 동안만 아주 살짝 빠르게(1.8배) */ orb.rate = 4; tune.tint = cl.rgb; tune.tkT = cl.k; tune.chaosT = 0;
     } else if (cur !== "D4") { orb.tDist = 1; orb.tSpeed = 1; orb.rate = 4; tune.tkT = 0; tune.chaosT = 0; }   // 발산 홈 등: 원래대로 (카드 덱에선 고른 느낌 그대로 이어감)
     { const kt = 1 - Math.exp(-6 * dt); tune.tk += (tune.tkT - tune.tk) * kt; tune.chaos += (tune.chaosT - tune.chaos) * kt;
-      for (let j = 0; j < offs.length; j++) offs[j] *= 1 - Math.min(1, dt * 2); }
-   // 11-05 2차: 궤도 모양은 그대로(공마다 따로 놀기 뺌) — 남아 있던 어긋남만 풀어 준다
+      for (let j = 0; j < offs.length; j++) offs[j] *= 1 - Math.min(1, dt * 2); }   // 11-05 2차: 궤도 모양은 그대로(공마다 따로 놀기 뺌) — 남아 있던 어긋남만 풀어 준다
     const ko = 1 - Math.exp(-orb.rate * dt); orb.dist += (orb.tDist - orb.dist) * ko;
     // 11-04 주형 5차: 빨라질 땐 스프링(덜 감쇠)이라 살짝 넘쳤다 돌아온다 = 쫀득. 느려질 땐 거꾸로 돌지 않게 그냥 스르르
     if (orb.tSpeed > orb.speed || orb.sv > 0) { const w = orb.rate * 1.7; orb.sv += (w * w * (orb.tSpeed - orb.speed) - 2 * .42 * w * orb.sv) * dt; orb.speed += orb.sv * dt; if (orb.tSpeed < orb.speed && orb.sv < 0) orb.sv = 0; }
@@ -310,8 +309,8 @@ const SLIME = (() => {
       if (u >= MRG.len) { mode = "done"; SM.forEach((S, j) => setTint(S, j, 0)); }
     }
   }
-  function loop() { if (mode === "off") return; frame(now()); if (window.SLIME_GOO) SLIME_GOO.sync(blobEls, svg); spinT = BIG.spinT; raf = requestAnimationFrame(loop); }   // 11-06 진규: 끈적 필터는 GPU(slime_goo_gl.js)가 같은 값으로 그림 — 아이폰 프레임   // 11-04: 엔진 행성 자전각(mascot_core 의 spinT)을 슬라임 큰 공과 계속 맞춘다 → 돌아올 때 줄무늬가 바뀌지 않음
-  function show(on) { svg.style.display = on ? "block" : "none"; if (window.SLIME_GOO) SLIME_GOO.show(on); }
+  function loop() { if (mode === "off") return; frame(now()); spinT = BIG.spinT; raf = requestAnimationFrame(loop); }   // 11-04: 엔진 행성 자전각(mascot_core 의 spinT)을 슬라임 큰 공과 계속 맞춘다 → 돌아올 때 줄무늬가 바뀌지 않음
+  function show(on) { svg.style.display = on ? "block" : "none"; }
   // 7차: 폰 밖 버튼 '모서리 고리 켬/끔' — '온보딩부터' 버튼 옆 (launch_app.js 가 그 버튼을 만든 뒤에 붙인다)
   document.addEventListener("DOMContentLoaded", () => { const ctl = $("ctl"); if (!ctl) return;
     const b = document.createElement("button"); b.id = "btnCornerRing"; b.type = "button";
