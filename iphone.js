@@ -334,15 +334,34 @@
         pad.style.cssText = `position:absolute;left:0;width:390px;top:${(top - 12).toFixed(1)}px;height:${(PH.h - top + 12 + 400).toFixed(1)}px;background:rgb(${c.join(",")});pointer-events:none;z-index:1;${unInv ? "filter:" + unInv : ""}`;
         fig.appendChild(pad);
         // 받침(z 1)은 그 화면의 다른 조각 위, 올라간 묶음(z 2)은 받침 위 — 문서 순서상 받침보다 뒤에 있던 글(담은 카드 · 아카이브)이 받침 위로 올라와 겹치던 것
-        lifted = { fig, gap: PH.h - bot, pad, els: [...els, pad].map(k => ({ k, tf: k === pad ? "" : (k.style.transform || ""), tr: k === pad ? "" : k.style.transition, z: k === pad ? null : k.style.zIndex })) };
+        lifted = { fig, gap: PH.h - bot, top, pad, els: [...els, pad].map(k => ({ k, tf: k === pad ? "" : (k.style.transform || ""), tr: k === pad ? "" : k.style.transition, z: k === pad ? null : k.style.zIndex })) };
         lifted.els.forEach(o => { if (o.z !== null) o.k.style.zIndex = "2"; });
       }
       const lift = toPh(kb) - lifted.gap + 8;   // 바 아래 끝과 키보드 사이 8px
-      if (lifted.lift !== lift) { lifted.lift = lift; lifted.els.forEach(o => { o.k.style.transition = "transform .22s cubic-bezier(.2,.8,.2,1)"; o.k.style.transform = `translate3d(0,${(-lift).toFixed(1)}px,0) ${o.tf}`; }); }
+      if (lifted.lift !== lift) { lifted.lift = lift; lifted.els.forEach(o => { o.k.style.transition = "transform .22s cubic-bezier(.2,.8,.2,1)"; o.k.style.transform = `translate3d(0,${(-lift).toFixed(1)}px,0) ${o.tf}`; }); mascotFit(lifted, lift); }
     } else unlift();
   }
+  // 채팅창이 올라올 때 마스코트(발산에서는 공 무리)도 같은 시간 · 곡선으로 남는 자리(머리글 아래 ~ 올라간 칩 위)에 맞게 줄이며 올린다 — 바텀시트가 올라올 때처럼
+  //   main 의 자리 잡기(transform)는 그대로 두고, 그 위에 translate · scale 만 얹는다(무대 transform-origin 0 0 기준으로 계산)
+  const EASE_KB = "cubic-bezier(.2,.8,.2,1)", HEAD_B = 100;   // 머리글 아래 끝(디자인 px)
+  function mascotFit(l, lift) {
+    const st = $("stage"); if (!st || st.classList.contains("hid")) return;
+    if (!l.st) { const ph = $("phone").getBoundingClientRect(), r = st.getBoundingClientRect(); l.st = { el: st, tr: st.style.transition, cx: (r.left - ph.left) / PH.s + r.width / PH.s / 2, cy: (r.top - ph.top) / PH.s + r.height / PH.s / 2, w: r.width / PH.s, L: [st.offsetLeft, st.offsetTop] }; }
+    const S = l.st, slime = typeof SLIME !== "undefined" && SLIME.active && SLIME.active();
+    const vis = S.w * (slime ? 2.05 / 1.45 : 2 / 2.9);   // 보이는 지름: 발산은 공 궤도 끝(공 반지름 1 = 무대 반 폭 1.45 칸, 궤도 끝 2.05 칸) · 홈은 행성
+    const room = l.top - 12 - lift - HEAD_B - 16;   // 머리글 아래 ~ 받침 위 (위아래 8px 씩)
+    const k = Math.max(.35, Math.min(1, room / vis)), cy2 = Math.min(S.cy, HEAD_B + 8 + room / 2 + 0), cx2 = S.cx;
+    const tx = cx2 - S.L[0] - k * (S.cx - S.L[0]), ty = cy2 - S.L[1] - k * (S.cy - S.L[1]);
+    S.el.style.transition = `${S.tr ? S.tr + ", " : ""}translate .22s ${EASE_KB}, scale .22s ${EASE_KB}`;
+    S.el.style.translate = `${tx.toFixed(1)}px ${ty.toFixed(1)}px`; S.el.style.scale = k.toFixed(4);
+  }
+  function mascotBack(l) {
+    if (!l.st) return; const S = l.st;
+    S.el.style.translate = ""; S.el.style.scale = "";
+    setTimeout(() => { if (!lifted) S.el.style.transition = S.tr || ""; }, 260);
+  }
   function unlift() {
-    if (!lifted) return; const l = lifted; lifted = null;
+    if (!lifted) return; const l = lifted; lifted = null; mascotBack(l);
     l.els.forEach(o => { o.k.style.transform = o.tf; setTimeout(() => { o.k.style.transition = o.tr || ""; if (o.z !== null) o.k.style.zIndex = o.z || ""; }, 260); });
     setTimeout(() => l.pad.remove(), 240);
   }

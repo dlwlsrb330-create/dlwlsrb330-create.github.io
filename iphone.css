@@ -53,5 +53,7 @@
 :root[data-iphone] #screens .scr:not(.on):not(.out-push):not(.out-sheet):not(.out-fwd):not(.ph-edge-low) { visibility: hidden; }
 /* 앱처럼 바로 실행: 가짜 바탕화면(#home)은 아이폰에서 안 보임. 실행 장면이 끝날 때까지 바탕 · 띠는 검정(흰 화면 번쩍임 없음) — iphone.js 가 끝나면 .ph-launched */
 :root[data-iphone] { --ph-bg: #0B0B0B; }
-:root[data-iphone] #home { visibility: hidden !important; }
-:root[data-iphone]:not(.ph-launched) #phone { background: #0B0B0B; }
+:root[data-iphone] #home { background: #0B0B0B !important; }   /* 가짜 바탕화면 자리를 검정으로 덮음 — 투명하게 숨기면 밑의 홈 화면 · 마스코트 실루엣이 비쳤음 */
+:root[data-iphone] #home > * { visibility: hidden !important; }
+/* 글 칠 때: 디자인에 그려 둔 가짜 커서(깜빡이는 ㅣ)가 진짜 커서와 글자를 가리던 것 → 그 화면에서 입력칸에 초점이 있으면 숨김 */
+:root[data-iphone] .fig:focus-within > [data-name="커서"], :root[data-iphone] .fig:focus-within [data-name="커서"] { visibility: hidden !important; }
