@@ -1,0 +1,222 @@
+/* comet.css — 화면 전환 프로토타입 공용 스타일. launch2 의 #stage(마스코트)·#mass(검은 원)·#glow 는 그대로. 화면 조각(.scr) 은 #screens 안. */
+#bar, #colorVar, #app, #appD { display: none !important; }        /* launch2 의 검토용 버튼과 런처 자체 홈/발산 글은 안 씀 (화면은 피그마 조각) */
+#screens { position: absolute; inset: 0; pointer-events: none; }
+.scr { position: absolute; inset: 0; opacity: 0; pointer-events: none; z-index: 1; }          /* 밝은 화면: 마스코트(z2) 아래 */
+.scr.on { opacity: 1; pointer-events: auto; }
+.scr.dark, .scr.overlay { z-index: 4; }                                                          /* 검정 화면·시트: 검은 원(z3) 위. 검정은 원이 주고, 시트의 dim 이 마스코트를 자연히 어둡게 */
+.scr .fig { position: absolute; left: 0; top: 0; }
+.scr.in-push { animation: inPush .32s cubic-bezier(.2,.8,.2,1); }
+.scr.in-sheet .sheetpart { animation: inSheet .28s cubic-bezier(.2,.8,.2,1); }
+.scr.in-sheet [data-name="dim"] { animation: inFade .22s ease-out; }
+@keyframes inPush { from { transform: translateX(100%); } to { transform: none; } }   /* 13판: 아이폰 넘김 — 새 화면이 불투명하게 오른쪽 끝에서 (예전: 24px + 투명→불투명, 두 화면이 겹쳐 비쳤음) */
+@keyframes inSheet { from { margin-top: 40px; } to { margin-top: 0; } }   /* 13판: transform 대신 margin-top — 조각마다 피그마가 준 transform: scale(…)(로고 크기)을 덮어 올라오는 동안 로고가 크게 보였다 줄던 것. translate 는 가운데 정렬에 써서 못 씀 */
+@keyframes inFade { from { opacity: 0; } to { opacity: 1; } }
+#stage { transition: opacity .25s; } #stage.hid { opacity: 0; pointer-events: none; } #stage.front { z-index: 5; }   /* front: 시트의 dim 위로 (D2 다이얼) */
+/* 4판: 누르는 순간 눌림 표시 (transform 은 피그마 배치에 쓰일 수 있어 건드리지 않고 투명도만) */
+.fig .press { opacity: .55 !important; transition: opacity .06s !important; }
+/* 4판: 전구가 된 순간 '삥' — 느낌표가 튀어나오고 짧은 빛살 세 줄 */
+.ping { position: absolute; z-index: 8; pointer-events: none; transform: translate(-50%, -50%) scale(var(--s, 1)); }
+.ping b { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #F2B54A; color: #0B0B0B; font: 900 20px/1 'Pretendard', sans-serif; animation: pingPop 1.2s cubic-bezier(.3,1.6,.5,1) both; }
+.ping i { position: absolute; left: 13px; top: 13px; width: 4px; height: 14px; border-radius: 2px; background: #F2B54A; transform-origin: 2px 22px; opacity: 0; animation: pingRay .5s ease-out .06s both; }
+.ping i:nth-child(1) { transform: translate(0, -22px) rotate(-40deg); } .ping i:nth-child(2) { transform: translate(0, -22px) rotate(0deg); } .ping i:nth-child(3) { transform: translate(0, -22px) rotate(40deg); }
+@keyframes pingPop { 0% { transform: scale(0) rotate(-20deg); } 30% { transform: scale(1.3) rotate(8deg); } 45% { transform: scale(.92) rotate(-4deg); } 60% { transform: scale(1) rotate(0); } 85% { transform: scale(1); opacity: 1; } 100% { transform: scale(.6); opacity: 0; } }
+@keyframes pingRay { 0% { opacity: 0; scale: 1 .2; } 40% { opacity: 1; scale: 1 1; } 100% { opacity: 0; scale: 1 .4; } }
+/* 말풍선 '눌러서 발산' (어포던스) */
+#hint { position: absolute; left: 50%; top: 130px; transform: translate(-50%, 6px); padding: 7px 12px; border-radius: 999px; background: var(--ink); color: var(--bg); font-size: 12px; opacity: 0; transition: opacity .25s, transform .25s; z-index: 7; pointer-events: none; white-space: nowrap; }
+#hint.on { opacity: 1; transform: translate(-50%, 0); }
+#hint::after { content: ""; position: absolute; left: 50%; bottom: -5px; margin-left: -5px; border: 5px solid transparent; border-bottom: 0; border-top-color: var(--ink); }
+/* 검토용: 폰 왼쪽 화면 선택 */
+#jump { position: absolute; left: calc(50% - 195px - 14px - 150px); top: calc(50% - 380px); width: 136px; display: flex; flex-direction: column; gap: 3px; font-size: 11px; max-height: 760px; overflow: auto; }
+#jump b { font-size: 11px; color: #555; margin-bottom: 4px; }
+#jump button { font: inherit; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); text-align: left; cursor: pointer; }
+#jump button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+:root[data-embed] #jump { display: none; }
+/* 녹음 알약 (record_pill.js): 마이크 자리에서 왼쪽으로 늘어난다 */
+#recpill .live { width: 8px; height: 8px; border-radius: 50%; background: #fff; flex: none; animation: pillBlink 1s infinite; }
+#recpill .wave { flex: none; } #recpill .tm { font-size: 13px; font-weight: 700; font-family: 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', sans-serif; white-space: nowrap; font-variant-numeric: tabular-nums; min-width: 34px; flex: none; }   /* 4판: 12:48 → 13:00 처럼 자릿수가 바뀌어도 안 잘림 */
+#recpill .live, #recpill .wave, #recpill .tm { opacity: 0; transition: opacity .2s; } #recpill.on .live, #recpill.on .wave, #recpill.on .tm { opacity: 1; }
+@keyframes pillBlink { 50% { opacity: .35; } }
+/* 5판: ▾ 칩·더보기(…)를 누르면 열리는 작은 목록 (와이어프레임 H9·H10 팝오버와 같은 모양) */
+.dropmenu { position: absolute; z-index: 9; min-width: 140px; padding: 6px; border-radius: 14px; background: #fff; border: 1px solid #e4e0ee; box-shadow: 0 0 40px rgba(107,77,255,.26); display: flex; flex-direction: column; animation: dropIn .16s ease-out; }
+.dropmenu button { font: 500 14px/1 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', sans-serif; color: #1a1626; text-align: left; padding: 11px 12px; border: 0; border-radius: 9px; background: none; cursor: pointer; }
+.dropmenu button:hover { background: #f2eefa; }
+@keyframes dropIn { from { opacity: 0; transform: translateY(-4px); } }
+/* 5판: 눈 둘레 테두리(--seat)도 몸 색(--ink)을 따라가게. :root 에서 var(--ink) 로 한 번 계산되면 검정으로 굳으므로 #stage 에서 다시 계산 (반전 화면 :root.inv #stage 는 그대로 우선) */
+#stage { --seat: var(--ink); }
+/* 5판: 관리 메뉴(M1)는 사이드바 → 오른쪽에서 밀려 들어온다 (다른 시트는 아래에서) */
+#scr-M1.in-sheet .sheetpart { animation: inSide .3s cubic-bezier(.2,.8,.2,1); }
+@keyframes inSide { from { transform: translateX(300px); } to { transform: none; } }
+/* 5판: 녹음 알약 안 — V4 R2-6c 그대로 (점 #1a1626, 시간 Gothic A1 Bold 14px #1a1626) */
+#recpill .live { background: #1a1626; }
+#recpill .tm { font-family: 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', sans-serif; font-size: 14px; min-width: 48px; }
+/* 5판: 홈으로 돌아갈 때는 왼쪽에서 (앞으로 갈 때 in-push 의 반대 방향) */
+.scr.in-back { animation: inBack .32s cubic-bezier(.2,.8,.2,1); }
+@keyframes inBack { from { transform: translateX(-30%); } to { transform: none; } }   /* 13판: 뒤로 — 덮여 있던 화면이 왼쪽 30% 에서 제자리로 */
+/* 5판: 닫히는 화면 — 잠깐 보인 채 열 때의 반대로 빠진다 (시트는 아래로·관리 메뉴는 오른쪽으로·밀려온 화면은 오른쪽으로) */
+.scr.out-sheet, .scr.out-push { opacity: 1; pointer-events: none; z-index: 6; }
+.scr.out-sheet .sheetpart { animation: outSheet .22s cubic-bezier(.4,0,1,1) forwards; }
+.scr.out-sheet [data-name="dim"] { animation: outFade .22s ease-in forwards; }
+#scr-M1.out-sheet .sheetpart { animation-name: outSide; }
+/* 11-05 주형: 시트 → 시트 바꿈(router show 의 replace) — 어두운 막은 새 시트 것 하나만, 페이드 없이 그대로 */
+.scr.keep-dim [data-name="dim"] { animation: none !important; }
+.scr.no-dim [data-name="dim"] { opacity: 0 !important; animation: none !important; }
+.scr.out-push { animation: outPush .32s cubic-bezier(.2,.8,.2,1) forwards; }   /* 13판: .22 → .32 (밑 화면 in-back 과 같은 시간) */
+@keyframes outSheet { to { margin-top: 60px; opacity: 0; } }   /* 13판: 위와 같은 이유로 margin-top */
+@keyframes outSide { to { transform: translateX(300px); } }
+@keyframes outFade { to { opacity: 0; } }
+@keyframes outPush { to { transform: translateX(100%); } }   /* 13판: 뒤로 — 위 화면이 불투명하게 오른쪽 끝으로 */
+/* 5판: 짧은 안내 (복사·공유 등) */
+.toast { position: absolute; left: 50%; bottom: 112px; transform: translateX(-50%); z-index: 9; padding: 10px 16px; border-radius: 999px; background: #1a1626; color: #fff; font: 500 13px/1 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', sans-serif; white-space: nowrap; animation: toastIn .2s ease-out; transition: opacity .3s; }
+.toast.off { opacity: 0; }
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, 8px); } }
+/* 5판: 녹음 중 홈(R2-6c) 프로젝트 이름 — 알약과 안 겹치게 한 줄 말줄임 (피그마에서 폭 100 · 말줄임으로 고침, 코드로는 안 넘어옴) */
+.fig [data-node-id="866:4940"] { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 11판: 발산 화면(D1·D2·D4·D5·D6)도 흰 화면. 와이어프레임은 어두운 V4 뿐이라 색을 뒤집어 밝게 쓴다 (밝은 D 화면이 나오면 이 줄을 지우고 그걸 끼운다) */
+.scr.dark .fig { filter: invert(1) hue-rotate(180deg); }
+.scr.dark [data-name^="GLOW"], .scr.dark [data-name="GFX_scrim"] { display: none; }
+#zoom { background: var(--bg) !important; }   /* 앱 아이콘 줌 판도 흰색 (안의 검은 공은 그대로) */
+#zoom svg { display: none; }   /* 11판: 아이콘이 커지는 흰 판 안에 검은 공이 크게 보이던 것 — 공은 실행 장면에서 점부터 생긴다 */
+#icon { cursor: pointer; }
+/* 11판: 발산 화면 「담은 카드 · 아카이브」 줄을 아래로 — 홈 화면 칩 줄과 같은 자리(입력 바 위 16px 간격, 입력 바 top 718 → 줄 아래 끝 702) */
+#scr-D1 [data-node-id="866:101"], #scr-D1 [data-node-id="866:102"], #scr-D1 [data-node-id="866:103"] { top: 650px !important; }
+/* 11판: 발산 방식 시트(D2) — 애플 시트처럼. 시트 조각마다 따로 반전·GPU 층(움직일 때 화면 전체를 다시 그리지 않게), 같은 거리·같은 곡선으로 함께 올라온다 */
+#scr-D2 .fig { filter: none; }
+#scr-D2 .fig > * { filter: invert(1) hue-rotate(180deg); }
+#scr-D2 .sheetpart, #scr-D2 .beodial { will-change: transform; }
+#scr-D2.in-sheet .sheetpart, #scr-D2.in-sheet .beodial { animation: d2In .5s cubic-bezier(.32,.72,0,1) both; }
+#scr-D2.in-sheet [data-name="dim"] { animation: inFade .5s cubic-bezier(.32,.72,0,1) both; }
+#scr-D2.out-sheet .sheetpart, #scr-D2.out-sheet .beodial { animation: d2Out .32s cubic-bezier(.4,0,1,1) forwards; }
+@keyframes d2In { from { transform: translateY(620px); } to { transform: none; } }
+@keyframes d2Out { to { transform: translateY(620px); } }
+/* 시트 바탕 = 홈 입력창 색(흰 바탕 위 rgba(20,15,36,.05) ≈ #F0F0EF). 반전 필터를 거치므로 반대 값으로 칠한다 */
+#scr-D2 [data-name="div.sheet"] { background: #0f0f10 !important; }
+/* 11판: 프레임 — 마스코트 상자(슬라임 공 포함)를 그래픽 카드 층으로. 시트와 같이 움직이고 크기가 바뀌어도 다시 그리지 않고 밀기만 한다 */
+#stage { will-change: transform; transform: translateZ(0); backface-visibility: hidden; }
+#scr-D2 .fig > * { backface-visibility: hidden; }
+/* 카드 장수 상자: 연회색 시트와 구분되게 흰 바탕(다이얼 판과 같은 색). 반전 필터를 거치므로 반대 값 */
+#scr-D2 [data-name="카드 장수 · 바탕"] { background: #030305 !important; }
+/* 11-04 주형: 카드 장수 상자는 누를 때 덜 어두워지게 (공용 눌림 .55 → 흰 상자가 회색으로 보였다) */
+#scr-D2 [data-name^="카드 장수"].press { opacity: .86 !important; }
+/* 11-04 주형: 카드 덱(D4) — 각주·거리 막대·"가까운 · z" 줄 숨김 (담은 카드 목록은 이 글을 그대로 읽어 간다) */
+#scr-D4 [data-name="div.card"] [data-name="div.meta"], #scr-D4 [data-name="div.card"] [data-name="div.foot"] { display: none; }
+/* 끄는 동안 카드 색 자체가 바뀐다: 오른쪽 = 담기(Comet 주황 #FF6A45), 왼쪽 = 버리기(짙은 회색) — 발산 공 말고는 색을 주황 하나로. 글은 흰색, 가운데 위에 ✓ / ✕. 화면이 반전 필터를 거치므로 색 층은 한 번 더 뒤집어 제 색으로 */
+#scr-D4 .swipefx { position: absolute; inset: -1.75px; border-radius: 12px; pointer-events: none; filter: invert(1) hue-rotate(180deg); --c: 28,23,48; opacity: var(--sk, 0); background: rgb(var(--c)); }
+#scr-D4 [data-swipe="toss"] > .swipefx { --c: 60,58,68; }
+#scr-D4 .swipefx b { position: absolute; left: 50%; top: 96px; width: 64px; height: 64px; margin-left: -32px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.22); opacity: 0; transform: scale(.6); transition: opacity .12s, transform .18s cubic-bezier(.3,1.6,.5,1); }
+#scr-D4 .swipefx b svg { width: 30px; height: 30px; stroke: #fff; stroke-width: 3.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+#scr-D4 [data-swipe="keep"] > .swipefx .keep, #scr-D4 [data-swipe="toss"] > .swipefx .toss { opacity: 1; transform: none; }
+#scr-D4 [data-name="div.card"] [data-name="div.idea"] p { transition: color .15s; font-weight: 500 !important; }   /* 11-05 진규: 카드 글씨 굵기 600 → 500 */
+#scr-D4 [data-strong] [data-name="div.idea"] p { color: #000 !important; }   /* 반전되어 흰 글 */
+/* 덱 아래 버튼: ✕ 버리기 · ✓ 담기 (눌러도 넘어가고, 끄는 쪽 버튼이 차오른다) */
+#scr-D4 .deckbtns { position: absolute; left: 0; right: 0; top: 688px; display: flex; justify-content: center; gap: 72px; z-index: 2; }
+#scr-D4 .deckbtns button { --c: 28,23,48; position: relative; width: 60px; height: 60px; border-radius: 50%; border: 2px solid rgba(var(--c), .9); background: #fff; display: grid; place-items: center; cursor: pointer; padding: 0; transition: background .15s, transform .15s cubic-bezier(.3,1.6,.5,1); -webkit-tap-highlight-color: transparent; }
+#scr-D4 .deckbtns button.toss { --c: 60,58,68; }
+#scr-D4 .deckbtns svg { width: 26px; height: 26px; stroke: rgb(var(--c)); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: stroke .15s; }
+#scr-D4 .deckbtns span { position: absolute; top: 68px; left: 50%; transform: translateX(-50%); white-space: nowrap; font: 600 12px/1 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', sans-serif; color: #77776f; }
+#scr-D4 .deckbtns button.on, #scr-D4 .deckbtns button:active { background: rgb(var(--c)); transform: scale(1.1); }
+#scr-D4 .deckbtns button.on svg, #scr-D4 .deckbtns button:active svg { stroke: #fff; }
+/* 11-05 진규: 테두리만 있는 버튼은 앱에 없다 → 앱 버튼 토큰으로. 버리기 = 원형 보조 버튼(옅은 바탕 rgba(20,15,36,.05) + 1px rgba(20,15,36,.1), 아이콘 #1a1626), 담기 = 주 버튼 주황 #f0532c 채움 + 흰 아이콘. 크기 60px 그대로 */
+#scr-D4 .deckbtns button.toss { --c: 26,22,38; border: 1px solid rgba(20,15,36,.1); }
+#scr-D4 .deckbtns button.toss:not(.on):not(:active) { background: rgba(20,15,36,.05); }   /* 누르면 위 .on 처럼 #1a1626 으로 차오름 */
+/* 11-05 진규 2차: 담기도 평소엔 연한 주황(버리기와 같은 문법) — 기울이거나 누르면 위 .on 처럼 #f0532c 로 차오름 */
+/* 11-05 진규 3차: 담기 색 = 카드 색(--kc, actions.js drawCards 가 마스코트 색을 넣음, 없으면 주황). 오른쪽으로 넘길 때 덮이는 색(.swipefx)도 같은 --kc */
+/* 11-05 주형: 포인트 주황 뺌 — 다이얼 색(--kc)을 안 골랐을 때의 기본색(담기 버튼 · 끌기 덮개 · 담은 카드 빛남)을 주황 → 잉크(28,23,48). 다이얼 색을 따라가는 건 그대로 */
+#scr-D4 .deckbtns button.keep { --c: var(--kc, 28,23,48); border: 1px solid rgba(var(--c), .25); }
+#scr-D4 .deckbtns button.keep:not(.on):not(:active) { background: rgba(var(--c), .1); }
+#scr-D4 .swipefx { --c: var(--kc, 28,23,48); }
+#scr-D4 .deckbtns.done { opacity: .35 !important; pointer-events: none; transition: opacity .3s; }   /* 다 넘기면 꺼짐 */
+/* 11-04 주형: 다 뽑고 발산 화면으로 돌아오면 「담은 카드」 줄 테두리가 몇 번 빛난다 (담겼다는 표시) */
+#scr-D1 .savedglow { position: absolute; border-radius: 8px; pointer-events: none; z-index: 3; animation: savedGlow 1.9s ease-in-out 1 both; }
+/* 11-04 주형 2차: 바깥으로 커지던 이중 테는 어색했다 → 줄의 회색 테 자리에 딱 맞게 겹쳐서, 테가 주황으로 한 번 스르르 바뀌었다 돌아온다 (안쪽에 아주 옅은 주황, 바깥 번짐 6px) */
+@keyframes savedGlow { 0% { box-shadow: inset 0 0 0 1.5px rgba(28,23,48,0), 0 0 0 rgba(28,23,48,0); background: rgba(28,23,48,0); }
+  25%, 60% { box-shadow: inset 0 0 0 1.5px rgba(28,23,48,.95), 0 0 6px rgba(28,23,48,.25); background: rgba(28,23,48,.05); }
+  100% { box-shadow: inset 0 0 0 1.5px rgba(28,23,48,0), 0 0 0 rgba(28,23,48,0); background: rgba(28,23,48,0); } }
+/* 11-04 주형: 발산 화면들(D1 홈·D2 방식 시트·D4 카드 덱) 맨 위 '발산' 글자 지움 */
+#scr-D1 [data-node-id="866:97"], #scr-D2 [data-node-id="866:130"], #scr-D4 [data-node-id="866:280"] { display: none !important; }
+/* 11-04 주형: 발산 홈은 합의된 결정문(출근길 낯선 이와 마주치기)만 — 위 주제 줄·아래 날짜 줄 지움 */
+#scr-D1 [data-node-id="866:98"], #scr-D1 [data-node-id="866:100"] { display: none !important; }
+/* 11-04 주형: 입력 바 「발산 방식 ▾」 칩 — 연보라 대신 흰 바탕 + 가는 회색 테 + 검은 글 (흰 화면·검정 글·색 공 무드). 반전 필터를 거치므로 반대 값으로 칠한다 */
+#scr-D1 [data-node-id="866:112"] { background-color: #000 !important; box-shadow: inset 0 0 0 1px #1c1c1c; }
+#scr-D1 [data-node-id="866:116"], #scr-D1 [data-node-id="866:116"] * { color: #e9e9e9 !important; }
+#scr-D1 [data-node-id="866:113"] img { filter: grayscale(1); }
+
+/* 11-04 렉: 입력창·칩의 배경 흐림(7px, 167개)은 흰 바탕이라 안 보여서 끈다. 안 보이는 화면 숨기기는 뺐다 — 발산 전환 때 화면을 처음부터 다시 그려 멈췄다 */
+#phone * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+/* 13판(11-04 시연): '가져올 곳' 시트(C-I-*) 의 고른 표시 — 피그마 원본은 체크만(동그라미 없음)이라 고르면 동그라미가 사라져 보였음 → 채운 원 + 흰 체크 (OB-3 연결 체크와 같은 색) */
+[id^="scr-C-I-"] [data-name="\C120\D0DD\B428"] > img { content: url("/figma5/OB-3/assets/68858.svg?v=2"); }   /* OB-3 연결 체크 파일을 같은 <img> 로 (CSS 배경으로 그리면 1.5배 화면에서 테두리 픽셀이 달라 위가 얇아 보였음). 선택자 한글은 코드로: 서버가 글자 인코딩을 안 알려 줘서 "선택됨" 이 깨져 안 먹었음 */
+/* 13판: 안 고른 빈 동그라미(20) 가 고른 원(OB-3 체크: 20 칸 안 지름 16.7)보다 커 보였음 → 같은 크기로. 선택자 한글은 코드("선택 안 됨") */
+[id^="scr-C-I-"] [data-name^="\C120"][data-name*=" "] { transform: scale(.833); }   /* '선(으로 시작)' + 띄어쓰기 있음 = '선택 안 됨' (코드 뒤 띄어쓰기는 CSS 가 먹어서 이렇게 고름) */
+/* 13판: 외부 로그인 시트(C-L-*) 가운데 로고를 옛 마스코트 그림 대신 Comet 앱 아이콘으로 */
+[id^="scr-C-L-"] img[src*="/c51e8.svg"] { content: url("/figma5/H5/assets/comet_app.svg"); }
+/* 13판: 앞으로 넘길 때 이전 화면이 새 화면(in-push .32s) 아래에서 살짝 왼쪽으로 밀리며 같이 사라짐 — 한 프레임에 꺼져 마스코트만 떠 보이던(실루엣) 것 */
+.scr.out-fwd { opacity: 1; pointer-events: none; z-index: 0; animation: outFwd .32s cubic-bezier(.2,.8,.2,1) forwards; }
+@keyframes outFwd { to { transform: translateX(-30%); } }   /* 13판: 앞으로 — 이전 화면은 새 화면 아래서 왼쪽 30% 로 밀려남 (투명해지지 않음) */
+/* 13판: 마스코트 뒤 은은한 색(피그마 'GLOW_로고 뒤 빛 번짐') — 모든 화면에서 뺌 (온보딩은 앞서 템플릿에서 뺐음) */
+.fig [data-name^="GLOW"] { display: none !important; }
+/* 13판: 발산 방식(다이얼) 시트가 열려 있는 동안 위에 보이는 발산 화면 제목 '발산' 숨김 (dial_beo.js 가 .d1-title 을 붙임) */
+.d1-title { transition: opacity .25s; }
+body[data-screen="D2"] .d1-title { opacity: 0 !important; }
+/* 11-05 주형: 카드 뽑는 동안 궤도 위 '~하는 중…' (아래에서 살짝 올라와 반짝이고, 다음 말에 자리를 내줌). 화면 반전 필터 밖 층이라 제 색 그대로 */
+#scr-D4 .vibe { position: absolute; left: 0; right: 0; top: 190px; height: 22px; pointer-events: none; z-index: 3; text-align: center; transition: opacity .3s; }
+#scr-D4 .vibe.off { opacity: 0; }
+#scr-D4 .vibe span { position: absolute; left: 0; right: 0; font: 600 14px/22px 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', sans-serif; letter-spacing: -.2px;
+  color: transparent; background: linear-gradient(90deg, #9a988f 0%, #9a988f 40%, #1a1626 50%, #9a988f 60%, #9a988f 100%) 0 0 / 250% 100%; -webkit-background-clip: text; background-clip: text;
+  animation: vibeIn .32s cubic-bezier(.2,.8,.3,1) both, vibeShine 1.4s linear infinite; }
+#scr-D4 .vibe span.out { animation: vibeOut .28s ease-in both; }
+@keyframes vibeIn { from { opacity: 0; transform: translateY(8px); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes vibeOut { to { opacity: 0; transform: translateY(-8px); filter: blur(2px); } }
+@keyframes vibeShine { from { background-position: 100% 0; } to { background-position: -50% 0; } }
+/* 11-05 주형: ✕ / ✓ 버튼은 카드 덱(D4)이 지금 화면일 때만 — 다른 화면으로 넘어가도 남아 보이던 것 (router 가 body[data-screen] 을 바꿔 줌) */
+body:not([data-screen="D4"]) #scr-D4 .deckbtns { opacity: 0 !important; pointer-events: none !important; transition: opacity .12s !important; }
+/* 11-05 주형 9차: 카드 = 흰 바탕 + 아래에서 옅게 차오르는 마스코트 색 + 테두리는 아래쪽만 마스코트 색(위는 옅은 회색) 1px 한 줄.
+   선은 mask 로 파내면 둥근 모서리에서 계단이 져서 → 테두리(border-box)에 선 색, 안쪽(padding-box)은 흰색으로 덮는 방식(모서리가 매끄럽게 그려짐).
+   색은 actions.js 가 덱에 --tc(r,g,b) · --ta(진하기, 다이얼 가운데면 0) 로 준다. 카드 바탕은 반전 필터를 거쳐서 #000 = 흰색, .cardtint 는 한 번 더 뒤집어 제 색으로 */
+#scr-D4 [data-name="div.card"] { background-color: #000 !important; border-color: transparent !important; border-radius: 24px !important; }   /* 11-05 진규 7차: 모서리 12 → 24 (.cardtint · .swipefx 도 같이) */
+#scr-D4 .swipefx { border-radius: 24px; }
+#scr-D4 .cardtint { position: absolute; inset: -1.75px; border-radius: 24px; pointer-events: none; filter: invert(1) hue-rotate(180deg);   /* 7차: 모서리 12 → 24 */
+  /* 11-05 진규 9차: 레퍼런스(같은 계열 색이 카드 전체에 흐르는 그라데이션)처럼. 테두리 없음. 방사(둥근 얼룩)는 빼고 대각선 한 줄 그라데이션만.
+     oklch 로 섞어서 색끼리 탁해지지 않게 이어짐. 오른쪽 위 = 색상 -35° 진하게 → 가운데 = 마스코트 색 밝게 → 왼쪽 아래 = 색상 +20° 아주 밝게(크림빛).
+     각 색을 흰색과 섞는 양 = --ta(다이얼 끝 .5, 가운데 0 = 흰 카드) × 비율 */
+  /* 12차: 글자 자리 흰 띠 뺌(9차로 되돌림) + 채도 대비 키움 — 오른쪽 위는 더 진하고 쨍하게(채도 ×1.15 → ×1.5, 흰색 덜 섞음), 아래는 더 옅게(채도 ×.8 → ×.5) */
+  background: linear-gradient(in oklch 200deg,
+      color-mix(in oklch, oklch(from rgb(var(--tc, 255,255,255)) calc(l + .02) calc(c * 1.5) calc(h - 35)) calc(var(--ta, 0) * 190%), #fff) 0%,
+      color-mix(in oklch, oklch(from rgb(var(--tc, 255,255,255)) calc(l + .08) calc(c * 1.1) h) calc(var(--ta, 0) * 110%), #fff) 45%,
+      color-mix(in oklch, oklch(from rgb(var(--tc, 255,255,255)) calc(l + .16) calc(c * .5) calc(h + 20)) calc(var(--ta, 0) * 110%), #fff) 100%),
+    #fff; }
+/* 11-05 주형: 카드 덱이 위 닫기(✕)에 너무 붙어 있었다 — 13판 상태 표시줄로 ✕ 가 내려와(아래 끝 90px) 간격 6px → 덱을 30px 내려 간격 36px, 덱 아래 버튼도 같이 */
+#scr-D4 [data-name="div.deck"] { top: 126px !important; }
+#scr-D4 .deckbtns { top: 716px; }
+/* 11-05 주형: 실행 장면 로고타입 = 둥근 소문자 'comet' (Fredoka SemiBold, SIL OFL — assets/fonts/Fredoka-OFL.txt). 실행 연출(launch2_director.js)은 그대로, 글꼴만 바꿈 */
+@font-face { font-family: "Comet Fredoka"; src: url("/assets/fonts/fredoka-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: block; }
+/* 11-05 진규: 로고타입 글꼴 Fredoka SemiBold → Quicksand Bold (SIL OFL — assets/fonts/Quicksand-OFL.txt). 크기·간격·소문자는 그대로, 글꼴만 바꿈 (Fredoka 파일은 남겨 둠) */
+@font-face { font-family: "Comet Quicksand"; src: url("/assets/fonts/quicksand-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: block; }
+#launchLogo span { font-family: "Comet Quicksand", "Pretendard Variable", Pretendard, sans-serif !important; font-weight: 700 !important; font-size: 36px; letter-spacing: -.01em; text-transform: lowercase; }
+body::after { content: "comet"; font: 700 1px "Comet Quicksand"; position: absolute; left: -999px; top: 0; opacity: 0; pointer-events: none; }   /* 실행 장면 전에 글꼴을 미리 받아 둠 (처음 뜰 때 다른 글꼴로 깜빡이지 않게) */
+/* 11-05 주형: 마스코트 상태 색이 화면 전체에 번지는 글로우 층(노랑 기쁨 · 파랑 듣기 등)을 모든 화면에서 끈다 (모양·눈 색 변화는 그대로) */
+#glow { display: none !important; }
+/* 11-05 진규: 상태 표시줄은 어떤 상황에서도 사라지지 않게 폰 위에 하나만 고정(statusbar.js #sbar). 화면마다 그리던 것(data-sb)은 숨김
+   — 화면이 흐려지거나(발산 연출) 밀려나거나(전환) 반전돼(발산 화면) 같이 사라지던 것. 실행 장면 검은 원이 덮는 동안만 흰색(.light) */
+#screens .fig > [data-sb] { visibility: hidden !important; }
+#sbar { position: absolute; left: 0; top: 0; width: 390px; height: 54px; z-index: 32; pointer-events: none; }   /* 2차: 바탕화면(30)·커지는 판(31) 위 */
+#home .st { visibility: hidden; }   /* 바탕화면 것 대신 #sbar(흰색) */
+#sbar.light { filter: invert(1); }
+/* 11-05 진규: 발산(D1) 위쪽 줄 = 홈 위쪽 줄 복사(statusbar.js, data-hdr). 발산은 반전 화면이라 복사한 조각만 반전을 되돌림 */
+.scr.dark .fig > [data-hdr] { filter: invert(1) hue-rotate(180deg); }
+/* 11-05 진규: 녹음 알약이 쪽빛이 된 뒤 깜빡이는 점(#1a1626)이 묻혔음 → 흰색 (파형·시간은 record_pill.js ink) */
+#recpill .live { background: #fff; }
+.scr.overlay { z-index: 5; }   /* 11-05 진규: 발산(D1, 검정 화면 z4)에서 띄운 시트가 같은 z4 라 문서 순서상 뒤에 있는 D1 아래로 깔려 담은 카드·입력창이 시트 위로 보였음 → 시트를 한 층 위로 (#glow z6 아래) */
+#screens .fig > [data-name="popover"] { --tw-shadow-color: rgba(20, 15, 36, .10); }   /* 11-05 진규: 범위 고르기 팝오버(H9 등) 뒤 보라 빛(107,77,255 · .26) → 색 없는 옅은 그림자 */
+#screens .fig > [data-name="seg on"], #screens .fig > [data-name="시작 준비 카드"] { --tw-shadow-color: rgba(20, 15, 36, .10); }   /* 11-05 진규: 같은 보라 빛(107,77,255) 남은 두 곳도 색 없는 그림자로 */
+
+/* 11-06 진규(아이폰): 시트 올라오기 · 내려가기를 margin-top(매 프레임 배치 다시 계산) 대신 translate 로 — animation-composition: add 라서
+   조각마다 원래 있던 가운데 정렬 translate 위에 더해지고, 피그마가 준 transform: scale(…) 도 안 건드림. 지원 안 하는 브라우저는 위 margin-top 그대로 */
+@supports (animation-composition: add) {
+  .scr.in-sheet .sheetpart { animation-name: inSheetT; animation-composition: add; }
+  .scr.out-sheet .sheetpart { animation-name: outSheetT; animation-composition: add; }
+  #scr-M1.in-sheet .sheetpart { animation-name: inSide; animation-composition: replace; }
+  #scr-M1.out-sheet .sheetpart { animation-name: outSide; animation-composition: replace; }
+  #scr-D2.in-sheet .sheetpart { animation-name: d2In; animation-composition: replace; }
+  #scr-D2.out-sheet .sheetpart { animation-name: d2Out; animation-composition: replace; }
+}
+@keyframes inSheetT { from { translate: 0 40px; } to { translate: 0 0; } }
+@keyframes outSheetT { to { translate: 0 60px; opacity: 0; } }

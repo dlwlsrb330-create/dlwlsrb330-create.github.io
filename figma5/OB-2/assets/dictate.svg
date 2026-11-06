@@ -1,0 +1,5 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<!-- 13판: OB-2 '말로 입력' = 홈 채팅창 옆 음성 단추(H1 btn 음성 99b27 + 음성 파형 71d61)와 같은 그림. 원과 파형을 한 장에 그려 원 정가운데 고정 (H1 처럼 32 칸 안 18 파형, 7px 띄움) -->
+<circle cx="16" cy="16" r="16" fill="#F0532C"/>
+<path transform="translate(7 7)" d="M3 7.5V10.5M6 5.25V12.75M9 3V15M12 5.25V12.75M15 7.5V10.5" stroke-width="1.5" stroke-linecap="round" stroke="#1A1626"/>
+</svg>

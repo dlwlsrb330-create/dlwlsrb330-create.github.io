@@ -1,0 +1,311 @@
+// iphone.js — 아이폰 실기기 입구(iphone.html)에서만 읽는다. 데스크탑 index.html 은 안 읽음.
+// ① 비율: 390 기준 화면을 가로에 맞춰 균일하게 키우고(scale = innerWidth / 390), 남는 세로는 아래에 붙는 것(입력 바 · 시트 · 아래 단추)이 같이 내려가게
+// ② 진짜 iOS 상태 표시줄 · 홈 표시줄 (가짜는 iphone.css 가 숨김), 홈 화면 아이콘
+// ③ 아이폰 손짓: 왼쪽 가장자리 쓸어 뒤로 · 시트 끌어 닫기 · 키보드 위로 입력 바 · 확대 막기
+// ④ 개발자 판(오른쪽 위 모서리 1초 길게 누르기) · FPS 숫자
+// COMET.build · APP5.init 바로 앞에서 읽히고, 화면이 다 만들어진 뒤(DOMContentLoaded) 일을 시작한다.
+(() => {
+  const W = 390, H0 = 844;
+  const root = document.documentElement, $ = (id) => document.getElementById(id);
+  const PH = window.PH = { s: 1, h: H0, extra: 0, safeTop: 0, safeBottom: 0 };
+  const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+  // ---------- ① 비율 ----------
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)";
+  function fit() {
+    const s = innerWidth / W, h = innerHeight / s;   // 402 → 1.0308 · 874 / 1.0308 ≈ 848
+    PH.s = s; PH.h = h; PH.extra = h - H0;
+    if (probe.isConnected) { const cs = getComputedStyle(probe); PH.safeTop = parseFloat(cs.paddingTop) || 0; PH.safeBottom = parseFloat(cs.paddingBottom) || 0; }
+    root.style.setProperty("--ph-s", s.toFixed(5)); root.style.setProperty("--ph-h", h.toFixed(2) + "px");
+    shiftAll();
+  }
+
+  // 아래에 붙는 것 찾기 — 화면 조각(.fig)의 바로 아래 자식 중
+  //   시트 화면: 시트 조각(.sheetpart) 전부가 같이 내려감, 어두운 막(dim)은 높이만 늘림
+  //   보통 화면: 아래 끝 근처의 넓은 상자(입력 바 · 아래 단추 줄) 윗선부터 아래 전부. 화면 꼭대기에서 바닥까지 닿는 바탕은 높이만 늘림
+  const TAGGED = new Set();
+  const topOf = (k) => { const t = parseFloat(k.style.top); return isNaN(t) ? k.offsetTop : t; };
+  function tagFig(fig) {
+    if (!fig) return;
+    const overlay = !!fig.closest(".scr.overlay"), kids = [...fig.children];
+    // 앱 코드가 그 사이 top 을 새로 썼으면(디자인 좌표로) 그 값을 원래 자리로 본다
+    for (const k of kids) {
+      if (k._phT === undefined) continue;
+      const now = k._phMode === "grow" ? parseFloat(k.style.height) : topOf(k);
+      if (Math.abs(now - (k._phT + k._phD)) > .5) { k._phT = now; k._phD = 0; }
+    }
+    let cutoff = Infinity;
+    if (!overlay) {
+      for (const k of kids) {
+        if (k._phT !== undefined && k._phMode === "move") { cutoff = Math.min(cutoff, k._phT); continue; }
+        if (k._phT !== undefined) continue;
+        const t = topOf(k), h = k.offsetHeight, w = k.offsetWidth, cs = k.style;
+        if (t < H0 - 300 || t >= H0 || t + h < H0 - 110 || h > 300) continue;
+        const boxy = (w >= 200 && h >= 36 && (cs.backgroundColor || cs.borderStyle || cs.borderWidth)) || /^(home indicator|입력|바|btn|버튼|탭|하단|bottom)/i.test(k.dataset.name || "");
+        if (boxy) cutoff = Math.min(cutoff, t);
+      }
+      if (cutoff === Infinity) cutoff = H0 - 60;
+    }
+    for (const k of kids) {
+      if (k._phT !== undefined) continue;
+      const t = topOf(k), h = k.offsetHeight;
+      let mode = null;
+      if (overlay) mode = k.classList.contains("sheetpart") ? "move" : (t <= 1 && t + h >= H0 - 2 ? "grow" : null);
+      else if (t <= 1 && t + h >= H0 - 2 && h <= H0 + 2) mode = "grow";
+      else if (t >= cutoff - 1 && t < H0 + 40) mode = "move";
+      // 가짜 홈 표시줄(134×4~5 막대)은 이름이 달라도 숨김
+      if (t >= H0 - 24 && h <= 6 && Math.abs(k.offsetWidth - 134) <= 8) k.classList.add("ph-fake-hi");
+      if (mode === "grow" && !(/px$/.test(k.style.height) && parseFloat(k.style.height) >= H0 - 2)) mode = null;   // 높이를 px 로 적어 둔 바탕만 늘린다 (inset 으로 붙은 막은 화면 높이를 저절로 따라감)
+      if (!mode) continue;
+      k._phT = mode === "grow" ? parseFloat(k.style.height) : t; k._phD = 0; k._phMode = mode; TAGGED.add(k);
+    }
+  }
+  function shiftEl(k, dy) {
+    if (k._phMode === "grow") { const v = k._phT + dy; if (k._phD !== dy) { k.style.height = v + "px"; k._phD = dy; } return; }
+    if (k._phD === dy && Math.abs(topOf(k) - (k._phT + dy)) < .5) return;
+    k.style.top = (k._phT + dy) + "px"; k._phD = dy;
+  }
+  function shiftAll() { const dy = +PH.extra.toFixed(2); for (const k of TAGGED) { if (!k.isConnected) { TAGGED.delete(k); continue; } shiftEl(k, dy); } }
+  function tagAll() { document.querySelectorAll("#screens .scr > .fig").forEach(tagFig); shiftAll(); }
+
+  // ---------- ② 홈 화면 아이콘: icon.svg 를 180px 그림으로 (iOS 는 SVG apple-touch-icon 을 안 읽음) ----------
+  function touchIcon() {
+    const link = $("touchIcon"); if (!link) return;
+    const img = new Image(); img.onload = () => { try { const c = document.createElement("canvas"); c.width = c.height = 180; c.getContext("2d").drawImage(img, 0, 0, 180, 180); link.href = c.toDataURL("image/png"); } catch (e) {} };
+    img.src = "/icon.svg?v=ip1106a";
+  }
+
+  // ---------- 공용: 화면 기록 ----------
+  const OVER = () => (typeof SCREENS !== "undefined" && SCREENS.overlay) || [], DARK = () => (typeof SCREENS !== "undefined" && SCREENS.dark) || [];   // SCREENS 는 const 라 window 에 안 붙음
+  const isOver = (id) => OVER().includes(id), isDark = (id) => DARK().includes(id);
+  const ready = () => typeof COMET !== "undefined" && typeof T0 !== "undefined" && T0 !== null && $("home") && $("home").style.display === "none";
+  const toPh = (px) => px / PH.s;   // 화면 px → 폰(390 기준) px
+
+  // 스프링 곡선(시간 기준) → CSS linear() 로. 놓을 때 '제자리로' 돌아가는 움직임
+  function spring(stiff = 260, damp = 28, ms = 520) {
+    const pts = []; let x = 0, v = 0; const dt = 1 / 240, N = Math.round(ms / 1000 / dt);
+    for (let i = 0; i <= N; i++) { if (i % 6 === 0) pts.push(Math.min(1.2, x).toFixed(4)); const a = stiff * (1 - x) - damp * v; v += a * dt; x += v * dt; }
+    pts.push("1"); return `linear(${pts.join(",")})`;
+  }
+  const EASE_SPRING = (() => { try { return CSS.supports("transition-timing-function", "linear(0, 1)") ? spring() : "cubic-bezier(.2,.9,.3,1)"; } catch (e) { return "cubic-bezier(.2,.9,.3,1)"; } })();
+  const EASE_OUT = "cubic-bezier(.2,.8,.2,1)";
+
+  // 손가락 속도 (화면 px/ms) — 최근 80ms 만
+  const track = () => { const pts = []; return { add(x, y) { const t = performance.now(); pts.push([t, x, y]); while (pts.length > 2 && t - pts[0][0] > 80) pts.shift(); },
+    v() { if (pts.length < 2) return [0, 0]; const a = pts[0], b = pts[pts.length - 1], d = Math.max(1, b[0] - a[0]); return [(b[1] - a[1]) / d, (b[2] - a[2]) / d]; } }; };
+
+  // ---------- ③-1 왼쪽 가장자리 쓸어 뒤로 ----------
+  let G = null; PH.gesture = () => G;   // 지금 손짓 하나 (가장자리 · 시트 · 길게 누르기)
+  function edgeStart(e) {
+    if (!ready() || e.clientX > 20) return false;
+    const id = COMET.cur(); if (!id || id === "H1" || id === "D1" || isOver(id)) return false;   // 홈 · 발산 첫 화면(뒤로 = 수렴) · 시트 위에서는 안 받음
+    if (id === "OB-1") return false;                                                             // 온보딩 첫 장은 뒤가 없음
+    G = { kind: "edge", cand: true, pid: e.pointerId, x0: e.clientX, y0: e.clientY, tr: track() }; G.tr.add(e.clientX, e.clientY); return true;
+  }
+  function edgeEngage() {
+    const st = COMET.stack(), id = COMET.cur(), top = COMET.SCR[id].el, low = [];
+    if (st.length > 1) { let k = st.length - 2; while (k > 0 && isOver(st[k].id)) k--; for (let i = k; i <= st.length - 2; i++) { const s = COMET.SCR[st[i].id]; if (s && s.el !== top) low.push(s.el); } }
+    const dark = isDark(id);
+    for (const el of [top, ...low]) el.classList.remove("in-push", "in-back", "out-fwd", "out-push", "in-sheet");
+    top.classList.add("ph-edge-top"); top.style.zIndex = dark ? "5" : "2";
+    const wasOn = low.map(el => el.classList.contains("on"));
+    low.forEach((el, i) => { el.classList.add("on", "ph-edge-low"); if (!isOver(el.id.slice(4))) el.style.zIndex = dark ? "4" : "1"; });
+    const shade = document.createElement("div"); shade.className = "ph-edge-shade"; if (low[0]) low[0].appendChild(shade);
+    const stage = $("stage"), withStage = stage && !stage.classList.contains("hid") && !stage.classList.contains("front");
+    Object.assign(G, { cand: false, id, top, low, wasOn, shade, stage: withStage ? stage : null });
+  }
+  function edgeSet(p) {   // p: 0 ~ 390 (폰 px)
+    const k = p / W;
+    G.top.style.transform = `translate3d(${p.toFixed(2)}px,0,0)`;
+    const lx = (-.3 * W * (1 - k)).toFixed(2); G.low.forEach(el => el.style.transform = `translate3d(${lx}px,0,0)`);
+    G.shade.style.opacity = (.2 * (1 - k)).toFixed(3);
+    if (G.stage) G.stage.style.translate = `${p.toFixed(2)}px 0`;
+    G.p = p;
+  }
+  function edgeEnd(cancelled) {
+    const g = G; G = null; if (g.cand) return;
+    const [vx] = g.tr.v(), go = !cancelled && (g.p > W / 2 || vx > .5) && vx > -.2;
+    const from = g.p, to = go ? W : 0, vPh = Math.max(.9, Math.abs(toPh(vx)));
+    const dur = go ? Math.max(150, Math.min(330, (W - from) / vPh)) : 460, ease = go ? EASE_OUT : EASE_SPRING;
+    const opt = { duration: dur, easing: ease, fill: "forwards" }, anims = [];
+    anims.push(g.top.animate([{ transform: `translate3d(${from}px,0,0)` }, { transform: `translate3d(${to}px,0,0)` }], opt));
+    const lx0 = -.3 * W * (1 - from / W), lx1 = go ? 0 : -.3 * W;
+    g.low.forEach(el => anims.push(el.animate([{ transform: `translate3d(${lx0}px,0,0)` }, { transform: `translate3d(${lx1}px,0,0)` }], opt)));
+    anims.push(g.shade.animate([{ opacity: .2 * (1 - from / W) }, { opacity: go ? 0 : .2 }], opt));
+    if (g.stage) anims.push(g.stage.animate([{ translate: `${from}px 0`, opacity: 1 }, { translate: `${to}px 0`, opacity: go ? 0 : 1 }], opt));
+    anims[0].finished.then(() => {
+      const clean = () => {
+        anims.forEach(a => a.cancel()); g.shade.remove();
+        g.top.classList.remove("ph-edge-top"); g.top.style.transform = ""; g.top.style.zIndex = "";
+        g.low.forEach(el => { el.classList.remove("ph-edge-low"); el.style.transform = ""; el.style.zIndex = ""; });
+      };
+      if (go) {
+        COMET.back();
+        g.top.classList.remove("out-push", "out-fwd"); g.low.forEach(el => el.classList.remove("in-back", "in-push"));   // 이미 손으로 넘겼으니 router 의 넘김 애니메이션은 다시 안 돌림
+        clean();
+        if (g.stage) { const s = g.stage; s.getAnimations().forEach(a => a.cancel()); s.style.translate = ""; if (!s.classList.contains("hid")) { const tr = s.style.transition; s.style.transition = "none"; s.style.opacity = "0"; void s.offsetWidth; s.style.transition = tr; s.style.opacity = ""; } }
+      } else {
+        g.low.forEach((el, i) => { if (!g.wasOn[i]) el.classList.remove("on"); }); clean();
+        if (g.stage) g.stage.style.translate = "";
+      }
+    });
+  }
+
+  // ---------- ③-2 시트 끌어 닫기 ----------
+  function sheetParts() {
+    const id = COMET.cur(); if (!id || !isOver(id)) return null;
+    const scr = COMET.SCR[id]; if (!scr) return null;
+    const parts = [...scr.fig.querySelectorAll(":scope > .sheetpart")].filter(k => k.offsetWidth && getComputedStyle(k).display !== "none");
+    if (!parts.length) return null;
+    let big = parts[0], area = 0; for (const k of parts) { const a = k.offsetWidth * k.offsetHeight; if (a > area) { area = a; big = k; } }
+    const r = big.getBoundingClientRect(), ph = $("phone").getBoundingClientRect();
+    let axis = null;
+    if (r.width >= ph.width * .75 && r.top >= ph.top + 60 && r.bottom >= ph.bottom - 4) axis = "y";        // 바닥에 붙은 넓은 시트 → 아래로 끌어 닫기
+    else if (r.width >= 200 && r.right >= ph.right - 4 && r.top <= ph.top + 10 && r.bottom >= ph.bottom - 4) axis = "x";   // 오른쪽에서 나오는 사이드바(M1) → 오른쪽으로 밀어 닫기
+    if (!axis) return null;
+    const extra = [...scr.el.querySelectorAll(":scope > .beodial")];
+    const dim = scr.fig.querySelector(':scope > [data-name="dim"]');
+    return { id, scr, parts, extra, dim, rect: r, axis };
+  }
+  function sheetStart(e) {
+    if (!ready()) return false; const sp = sheetParts(); if (!sp) return false;
+    if (sp.axis === "y" && (e.clientY < sp.rect.top - 6 || e.clientY > sp.rect.top + 64 * PH.s)) return false;   // 손잡이 · 시트 위쪽 64px 만
+    if (sp.axis === "x" && (e.clientX < sp.rect.left || e.clientY < sp.rect.top)) return false;                  // 사이드바는 판 어디서든
+    if (e.target.closest("input, textarea, [contenteditable='true']")) return false;
+    G = { kind: "sheet", cand: true, pid: e.pointerId, x0: e.clientX, y0: e.clientY, tr: track(), sp }; G.tr.add(e.clientX, e.clientY); return true;
+  }
+  function sheetEngage() {
+    const { scr, parts, extra } = G.sp; scr.el.classList.remove("in-sheet");
+    G.els = [...parts, ...extra].map(k => ({ k, tf: k.style.transform || "", wc: k.style.willChange })); G.els.forEach(o => { o.k.style.willChange = "transform"; });
+    G.st = $("stage").classList.contains("front") ? $("stage") : null;
+    G.ax = G.sp.axis; G.h = toPh(G.ax === "x" ? G.sp.rect.width : G.sp.rect.height); G.cand = false;
+  }
+  function sheetSet(dy) {   // dy: 폰 px, 0 이상 (위로는 살짝만 버팀)
+    const y = dy < 0 ? -Math.pow(-dy, .6) : dy;
+    const T = (v) => G.ax === "x" ? `translate3d(${v.toFixed(2)}px,0,0)` : `translate3d(0,${v.toFixed(2)}px,0)`;
+    G.els.forEach(o => o.k.style.transform = `${T(y)} ${o.tf}`);
+    if (G.sp.dim) G.sp.dim.style.opacity = Math.max(0, 1 - Math.max(0, y) / G.h).toFixed(3);
+    if (G.st) G.st.style.translate = G.ax === "x" ? `${y.toFixed(2)}px 0` : `0 ${y.toFixed(2)}px`;
+    G.y = y;
+  }
+  function sheetEnd(cancelled) {
+    const g = G; G = null; if (g.cand) return;
+    const vv2 = g.tr.v(), vy = g.ax === "x" ? vv2[0] : vv2[1], go = !cancelled && (g.y > g.h * .35 || vy > .5) && vy > -.2;
+    const from = g.y, to = go ? g.h + 40 : 0, vPh = Math.max(.9, Math.abs(toPh(vy)));
+    const opt = { duration: go ? Math.max(160, Math.min(320, (to - from) / vPh)) : 460, easing: go ? EASE_OUT : EASE_SPRING, fill: "forwards" }, anims = [];
+    const T = (v) => g.ax === "x" ? `translate3d(${v}px,0,0)` : `translate3d(0,${v}px,0)`;
+    g.els.forEach(o => anims.push(o.k.animate([{ transform: `${T(from)} ${o.tf}` }, { transform: `${T(to)} ${o.tf}` }], opt)));
+    if (g.sp.dim) anims.push(g.sp.dim.animate([{ opacity: Math.max(0, 1 - from / g.h) }, { opacity: go ? 0 : 1 }], opt));
+    if (g.st) anims.push(g.st.animate(g.ax === "x" ? [{ translate: `${from}px 0` }, { translate: `${to}px 0` }] : [{ translate: `0 ${from}px` }, { translate: `0 ${to}px` }], opt));
+    if (!anims.length) return;
+    anims[0].finished.then(() => {
+      if (go) { COMET.back(); g.sp.scr.el.classList.remove("out-sheet"); }
+      anims.forEach(a => a.cancel());
+      g.els.forEach(o => { o.k.style.transform = o.tf; o.k.style.willChange = o.wc || ""; });
+      if (g.sp.dim) g.sp.dim.style.opacity = ""; if (g.st) g.st.style.translate = "";
+    });
+  }
+
+  // ---------- ④ 개발자 판 ----------
+  let dev = null, fpsOn = ls.get("comet.fps") === "1", fpsEl = null;
+  function devPanel() {
+    if (dev) return dev;
+    dev = document.createElement("div"); dev.id = "phDev";
+    const btn = (label, fn) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.addEventListener("click", (e) => { e.stopPropagation(); fn(b); }); return b; };
+    const OB = "comet.obFirst", obOn = () => ls.get(OB) === "1";
+    const ob = btn("", () => { ls.set(OB, obOn() ? "0" : "1"); paint(); });
+    const fps = btn("", () => { fpsOn = !fpsOn; ls.set("comet.fps", fpsOn ? "1" : "0"); fpsShow(); paint(); });
+    const paint = () => { ob.textContent = obOn() ? "온보딩부터 켬" : "온보딩부터 끔"; ob.setAttribute("aria-pressed", String(obOn())); fps.textContent = fpsOn ? "FPS 숫자 켬" : "FPS 숫자 끔"; fps.setAttribute("aria-pressed", String(fpsOn)); };
+    const head = document.createElement("b"); head.textContent = "개발자";
+    const list = document.createElement("div"); list.className = "list";
+    const fill = () => { list.textContent = ""; const j = $("jump"); if (!j) return; for (const b of j.querySelectorAll("button")) list.appendChild(btn(b.textContent, () => { close(); b.click(); })).setAttribute("aria-pressed", b.getAttribute("aria-pressed") || "false"); };
+    const lh = document.createElement("b"); lh.textContent = "화면 바로가기";
+    const close = () => dev.classList.remove("on");
+    dev.append(head, ob, btn("처음부터 다시", () => location.reload()), fps, lh, list, btn("닫기", close));
+    for (const k of ["pointerdown", "click", "touchstart"]) dev.addEventListener(k, (e) => e.stopPropagation());
+    document.body.appendChild(dev); dev._open = () => { paint(); fill(); dev.classList.add("on"); }; return dev;
+  }
+  function fpsShow() {
+    if (!fpsEl) { fpsEl = document.createElement("div"); fpsEl.id = "phFps"; document.body.appendChild(fpsEl);
+      let n = 0, t0 = performance.now(), worst = 0, last = t0;
+      (function f(now) { n++; worst = Math.max(worst, now - last); last = now; if (now - t0 >= 500) { fpsEl.textContent = `${Math.round(n * 1000 / (now - t0))} fps · 최장 ${worst.toFixed(1)}ms`; n = 0; t0 = now; worst = 0; } requestAnimationFrame(f); })(t0); }
+    fpsEl.classList.toggle("on", fpsOn);
+  }
+  function eatNextClick() { const f = (e) => { e.stopPropagation(); e.preventDefault(); }; addEventListener("click", f, true); setTimeout(() => removeEventListener("click", f, true), 400); }
+
+  // ---------- 손짓 받기 (포인터 · 캡처 단계에서 먼저) ----------
+  function down(e) {
+    if (G || !e.isPrimary || (dev && dev.contains(e.target))) return;
+    if (e.clientX > innerWidth - 56 && e.clientY < 64) {   // 오른쪽 위 모서리 1초
+      G = { kind: "long", cand: true, pid: e.pointerId, x0: e.clientX, y0: e.clientY, tr: track() };
+      G.timer = setTimeout(() => { if (G && G.kind === "long") { G = null; devPanel()._open(); eatNextClick(); } }, 1000);
+      return;
+    }
+    if (edgeStart(e)) return;
+    sheetStart(e);
+  }
+  function move(e) {
+    if (!G || e.pointerId !== G.pid) return;
+    const dx = e.clientX - G.x0, dy = e.clientY - G.y0; G.tr.add(e.clientX, e.clientY);
+    if (G.kind === "long") { if (Math.hypot(dx, dy) > 10) { clearTimeout(G.timer); G = null; } return; }
+    if (G.cand) {
+      if (Math.hypot(dx, dy) < 8) return;
+      if (G.kind === "edge" && dx > Math.abs(dy)) edgeEngage();
+      else if (G.kind === "sheet" && (G.sp.axis === "x" ? dx > Math.abs(dy) : dy > Math.abs(dx))) sheetEngage();
+      else { G = null; return; }
+    }
+    if (G.kind === "edge") edgeSet(Math.max(0, Math.min(W, toPh(dx))));
+    else sheetSet(toPh(G.ax === "x" ? dx : dy));
+  }
+  function up(e, cancelled) {
+    if (!G || e.pointerId !== G.pid) return;
+    if (G.kind === "long") { clearTimeout(G.timer); G = null; return; }
+    const engaged = !G.cand;
+    if (G.kind === "edge") edgeEnd(cancelled); else sheetEnd(cancelled);
+    if (engaged) eatNextClick();
+  }
+  addEventListener("pointerdown", down, true);
+  addEventListener("pointermove", move, true);
+  addEventListener("pointerup", (e) => up(e, false), true);
+  addEventListener("pointercancel", (e) => up(e, true), true);
+  // 손짓이 잡힌 동안엔 브라우저 스크롤 · 뒤로가기가 손가락을 가져가지 않게
+  addEventListener("touchmove", (e) => { if (G && G.kind !== "long") e.preventDefault(); if (e.touches.length > 1) e.preventDefault(); }, { passive: false, capture: true });
+  // 확대 막기: 핀치 · 두 번 탭
+  for (const k of ["gesturestart", "gesturechange", "gestureend"]) addEventListener(k, (e) => e.preventDefault(), { passive: false });
+  let lastTouchEnd = 0;
+  addEventListener("touchend", (e) => { const t = Date.now(); if (t - lastTouchEnd < 300 && !e.target.closest("input, textarea")) e.preventDefault(); lastTouchEnd = t; }, { passive: false });
+  addEventListener("contextmenu", (e) => { if (!e.target.closest("input, textarea, [contenteditable='true']")) e.preventDefault(); });
+
+  // ---------- ③-3 키보드: 입력 바를 키보드 위로 ----------
+  let lifted = null;
+  function keyboard() {
+    const vv = window.visualViewport; if (!vv) return;
+    const ae = document.activeElement, typing = ae && ae.matches && ae.matches("input, textarea, [contenteditable='true']");
+    const fig = typing && ae.closest(".fig"), inBar = fig && (TAGGED.has(ae) || [...TAGGED].some(k => k._phMode === "move" && k.parentElement === fig && k.contains(ae)));
+    const kb = Math.max(0, innerHeight - vv.height);   // 화면 px
+    if (typing && inBar && kb > 80) {
+      window.scrollTo(0, 0);
+      const lift = toPh(kb);   // 입력 바 아래 여백(디자인의 홈 표시줄 자리)째로 키보드 위에 붙인다
+      const els = [...TAGGED].filter(k => k._phMode === "move" && k.parentElement === fig);
+      if (!lifted || lifted.fig !== fig) { unlift(); lifted = { fig, els: els.map(k => ({ k, tf: k.style.transform || "", tr: k.style.transition })) }; }
+      lifted.els.forEach(o => { o.k.style.transition = "transform .25s cubic-bezier(.2,.8,.2,1)"; o.k.style.transform = `translate3d(0,${(-lift).toFixed(1)}px,0) ${o.tf}`; });
+    } else unlift();
+  }
+  function unlift() {
+    if (!lifted) return; const l = lifted; lifted = null;
+    l.els.forEach(o => { o.k.style.transform = o.tf; setTimeout(() => { o.k.style.transition = o.tr || ""; }, 260); });
+  }
+  if (window.visualViewport) { visualViewport.addEventListener("resize", keyboard); visualViewport.addEventListener("scroll", () => { if (lifted) window.scrollTo(0, 0); keyboard(); }); }
+  addEventListener("focusin", () => setTimeout(keyboard, 50)); addEventListener("focusout", () => setTimeout(keyboard, 50));
+  addEventListener("scroll", () => { if (window.scrollY || window.scrollX) window.scrollTo(0, 0); }, { passive: true });
+
+  // ---------- 시작 ----------
+  addEventListener("resize", fit); addEventListener("orientationchange", () => setTimeout(fit, 60));
+  document.addEventListener("DOMContentLoaded", () => {
+    document.body.appendChild(probe); fit(); tagAll(); touchIcon(); if (fpsOn) fpsShow();
+    // 화면이 바뀔 때마다(나중에 붙는 조각까지) 다시 찾는다
+    new MutationObserver(() => requestAnimationFrame(() => { const id = COMET.cur(); if (id && COMET.SCR[id]) { tagFig(COMET.SCR[id].fig); shiftAll(); } })).observe(document.body, { attributes: true, attributeFilter: ["data-screen"] });
+  });
+  fit();
+})();

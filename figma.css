@@ -1,0 +1,6 @@
+/* figma.css — 피그마에서 받은 화면 조각(.fig) 공용. 피그마 코드는 Tailwind 기본 초기화(여백 0 등)를 전제로 하므로 그만큼만 되돌린다. */
+.fig, .fig * { box-sizing: border-box; margin: 0; padding: 0; border-width: 0; border-style: solid; }
+.fig p, .fig h1, .fig h2, .fig h3, .fig span, .fig div { font-family: 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', sans-serif; }
+.fig img { display: block; }
+.fig [data-name^="btn"], .fig [data-name^="칩"], .fig [data-name^="타일"], .fig [data-name^="출처"], .fig [data-name^="카드"], .fig [data-name^="추천 질문"], .fig [data-name^="동작 칸"], .fig [data-name^="공유"], .fig [data-name^="슬롯"], .fig [data-name^="토글"] { cursor: pointer; }
+.fig p { pointer-events: none; }                    /* 글자는 탭을 통과시켜 그 아래 버튼(칩·행)이 받는다. text: 로 직접 연결한 글자는 router 가 다시 켠다 */
