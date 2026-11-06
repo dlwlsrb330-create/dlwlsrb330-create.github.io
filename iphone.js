@@ -525,7 +525,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     document.body.appendChild(probe); fit(); tagAll(); touchIcon(); if (fpsOn) fpsShow();
     if (COMET.SCR.D1) splitInvert(COMET.SCR.D1.fig);
-    swapDirector(); swapSpring(); swapEngineDraw(); swapMass(); wrapSheets(); setTimeout(prefetchImages, 1000);
+    swapDirector(); swapSpring(); swapEngineDraw(); swapMass(); setTimeout(prefetchImages, 1000);
     // 입구를 열 때마다 서버에서 새로 받게 (sw.js) — 사이트에 올린 것이 앱을 다시 열면 바로 보임. https 에서만
     if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(() => {});
     // 앱처럼 바로 실행: main 의 실행 장면은 바탕화면 아이콘을 눌러야 시작한다 → 아이폰에서는 켜자마자 그 아이콘 누름을 넣는다 (launch_app.js 가 페이지 준비 50ms 뒤부터 받음)

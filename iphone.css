@@ -68,23 +68,16 @@
 :root[data-iphone] #screens > .scr { contain: layout paint style; }
 /* 1 · 앱 켤 때 흰 박스: main comet.css 가 아이콘에서 커지는 판을 흰색으로 정함(데스크탑 연출) → 아이폰은 바로 검은 화면이라 그 판도 검정 */
 :root[data-iphone] #zoom { background: #0B0B0B !important; }
-/* 메뉴(☰) 사이드바(M1): main 은 조각 수십 개의 transform 을 translateX(300px) 로 덮어쓰며 밀어 넣어(조각이 원래 가진 transform 을 잃고 매 프레임 따로 다시 그림) 뻑뻑했음
-   → 같은 거리 · 시간 · 곡선을 translate 로, 원래 transform 위에 더함(배치 계산 없음). main 의 시간 · 곡선은 #scr-M1 규칙 그대로 씀 */
-@supports (animation-composition: add) {
-  :root[data-iphone] #scr-M1.in-sheet .sheetpart { animation-name: phInSide; animation-composition: add; }
-  :root[data-iphone] #scr-M1.out-sheet .sheetpart { animation-name: phOutSide; animation-composition: add; }
-}
-@keyframes phInSide { from { translate: 300px 0; } to { translate: 0 0; } }
-@keyframes phOutSide { to { translate: 300px 0; } }
-/* 시트 상자(iphone.js wrapSheets): 화면과 같은 크기 · 자리, 조각 개별 움직임은 끄고 상자만 main 과 같은 거리 · 시간 · 곡선으로 */
-:root[data-iphone] .ph-sw { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
-:root[data-iphone] .ph-sw > * { pointer-events: auto; }
-:root[data-iphone] .scr.in-sheet .ph-sw > .sheetpart, :root[data-iphone] .scr.out-sheet .ph-sw > .sheetpart { animation: none !important; }
-:root[data-iphone] .scr.in-sheet .ph-sw { animation: phSwIn .28s cubic-bezier(.2,.8,.2,1); }
-:root[data-iphone] .scr.out-sheet .ph-sw { animation: phSwOut .22s cubic-bezier(.4,0,1,1) forwards; }
-:root[data-iphone] #scr-M1.in-sheet .ph-sw { animation: phSwSideIn .3s cubic-bezier(.2,.8,.2,1); }
-:root[data-iphone] #scr-M1.out-sheet .ph-sw { animation: phSwSideOut .22s cubic-bezier(.4,0,1,1) forwards; }
-@keyframes phSwIn { from { transform: translate3d(0, 40px, 0); } to { transform: none; } }
-@keyframes phSwOut { to { transform: translate3d(0, 60px, 0); opacity: 0; } }
-@keyframes phSwSideIn { from { transform: translate3d(300px, 0, 0); } to { transform: none; } }
-@keyframes phSwSideOut { to { transform: translate3d(300px, 0, 0); } }
+/* 시트 열기(사이드바 · 프로젝트 바꾸기 · 권한 등, 발산 방식 D2 빼고): main 은 조각 20~43개를 각자 움직여 열 때 덜컹였다.
+   → 조각 움직임은 끄고 시트 화면 덩어리 하나를 같은 거리 · 시간 · 곡선으로 움직이고, 그 안의 어두운 막은 같은 곡선으로 반대로 움직여 제자리(막의 흐려지며 나타남은 main 그대로) */
+:root[data-iphone] .scr.overlay.in-sheet:not(#scr-D2) .sheetpart { animation: none !important; }
+:root[data-iphone] .scr.overlay.in-sheet:not(#scr-D2) { animation: phSheetIn .28s cubic-bezier(.2,.8,.2,1); }
+:root[data-iphone] .scr.overlay.in-sheet:not(#scr-D2) [data-name="dim"] { animation: inFade .22s ease-out, phSheetInBack .28s cubic-bezier(.2,.8,.2,1) !important; }
+:root[data-iphone] .scr.overlay.in-sheet.keep-dim:not(#scr-D2) [data-name="dim"] { animation: phSheetInBack .28s cubic-bezier(.2,.8,.2,1) !important; }
+:root[data-iphone] #scr-M1.in-sheet { animation: phSideIn .3s cubic-bezier(.2,.8,.2,1); }
+:root[data-iphone] #scr-M1.in-sheet [data-name="dim"] { animation: inFade .22s ease-out, phSideInBack .3s cubic-bezier(.2,.8,.2,1) !important; }
+:root[data-iphone] #scr-M1.in-sheet.keep-dim [data-name="dim"] { animation: phSideInBack .3s cubic-bezier(.2,.8,.2,1) !important; }
+@keyframes phSheetIn { from { translate: 0 40px; } to { translate: 0 0; } }
+@keyframes phSheetInBack { from { translate: 0 -40px; } to { translate: 0 0; } }
+@keyframes phSideIn { from { translate: 300px 0; } to { translate: 0 0; } }
+@keyframes phSideInBack { from { translate: -300px 0; } to { translate: 0 0; } }
