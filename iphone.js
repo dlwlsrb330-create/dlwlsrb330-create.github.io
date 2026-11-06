@@ -13,12 +13,14 @@
   // ---------- ① 비율 ----------
   const probe = document.createElement("div");
   probe.style.cssText = "position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)";
+  const typingNow = () => { const a = document.activeElement; return !!(a && a.matches && a.matches("input, textarea, [contenteditable='true']")); };
   function fit() {
+    if (typingNow() && PH.baseVH) return;   // 키보드가 올라와 창이 줄어든 것은 배율을 다시 잡지 않는다 (keyboard 가 입력 바만 올림)
     // 상태 표시줄은 iOS 기본 방식(apple-mobile-web-app-status-bar-style=default): iOS 가 시계 · 배터리 줄을 앱 위에 따로 그리고, 앱은 그 아래만 받는다.
     //   (투명 black-translucent 는 iOS 26 홈 화면 앱에서 아래 63pt 를 앱이 못 써서 잘렸음)
     //   그래서 페이지가 상태 표시줄 밑으로 안 들어가면(safe-area-inset-top ≈ 0) 디자인 맨 위 가짜 상태 표시줄 자리(TOP 54)를 위로 밀어 숨긴다
     if (probe.isConnected) { const cs = getComputedStyle(probe); PH.safeTop = parseFloat(cs.paddingTop) || 0; PH.safeBottom = parseFloat(cs.paddingBottom) || 0; }
-    const TOP = PH.safeTop < 20 ? SB_H : 0, vw = innerWidth, vh = innerHeight;
+    const TOP = PH.safeTop < 20 ? SB_H : 0, vw = innerWidth, vh = innerHeight; PH.baseVH = vh;
     let s = vw / W, h = vh / s + TOP, x = 0;
     if (h < H0) { s = vh / (H0 - TOP); h = H0; x = (vw - W * s) / 2; }   // 디자인보다 짧은 화면: 아래를 끌어올리지 않고 높이에 맞춰 통째로 줄임, 좌우는 바탕색
     PH.s = s; PH.h = h; PH.extra = h - H0; PH.x = x; PH.top = TOP;
@@ -258,9 +260,9 @@
     const dx = e.clientX - G.x0, dy = e.clientY - G.y0; G.tr.add(e.clientX, e.clientY);
     if (G.kind === "long") { if (Math.hypot(dx, dy) > 10) { clearTimeout(G.timer); G = null; } return; }
     if (G.cand) {
-      if (Math.hypot(dx, dy) < 8) return;
+      const d = Math.hypot(dx, dy); if (d < 8) return;
       if (G.kind === "edge" && dx > Math.abs(dy)) edgeEngage();
-      else if (G.kind === "sheet" && (G.sp.axis === "x" ? dx > Math.abs(dy) : dy > Math.abs(dx))) sheetEngage();
+      else if (G.kind === "sheet") { if (d < 14) return; if (G.sp.axis === "x" ? dx > 2 * Math.abs(dy) : dy > 1.5 * Math.abs(dx)) sheetEngage(); else { G = null; return; } }   // 시트는 14px 넘게 · 한쪽으로 분명히 끌 때만 (단추 탭이 끌기로 먹히지 않게)
       else { G = null; return; }
     }
     if (G.kind === "edge") edgeSet(Math.max(0, Math.min(W, toPh(dx))));
@@ -285,27 +287,48 @@
   addEventListener("touchend", (e) => { const t = Date.now(); if (t - lastTouchEnd < 300 && !e.target.closest("input, textarea")) e.preventDefault(); lastTouchEnd = t; }, { passive: false });
   addEventListener("contextmenu", (e) => { if (!e.target.closest("input, textarea, [contenteditable='true']")) e.preventDefault(); });
 
-  // ---------- ③-3 키보드: 입력 바를 키보드 위로 ----------
-  let lifted = null;
+  // ---------- 작은 단추 눌림 범위: 36px 동그라미 단추를 14px 안에서 비껴 눌러도 그 단추로 ----------
+  function snapTap(e) {
+    if (!ready() || e.target.closest("#phDev, #phFps, input, textarea")) return;
+    const x = e.clientX, y = e.clientY, els = document.elementsFromPoint(x, y);
+    const under = els.find(k => k.dataset && k.dataset.flow === "1"); if (under) { const r = under.getBoundingClientRect(); if (r.width * r.height < 90 * 90 * PH.s * PH.s) return; }   // 이미 작은 단추 위
+    let best = null, bd = 14 * PH.s;
+    for (const k of document.querySelectorAll('#screens .scr.on [data-flow="1"]')) {
+      const r = k.getBoundingClientRect(); if (r.width < 6 || r.width > 60 * PH.s || r.height > 60 * PH.s) continue;
+      if (getComputedStyle(k).visibility === "hidden") continue;
+      const dx = Math.max(r.left - x, 0, x - r.right), dy = Math.max(r.top - y, 0, y - r.bottom), d = Math.hypot(dx, dy);
+      if (d > 0 && d < bd) { bd = d; best = k; }
+    }
+    if (!best) return;
+    e.stopPropagation(); e.preventDefault();
+    const r = best.getBoundingClientRect(); best.dispatchEvent(new MouseEvent("click", { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, bubbles: true, cancelable: true }));
+  }
+  addEventListener("click", snapTap, true);
+
+  // ---------- ③-3 키보드: 입력 바(또는 입력칸이 든 시트)를 키보드 위로 ----------
+  //   iOS 홈 화면 앱은 키보드가 올라오면 innerHeight 자체가 줄기도 하고(사파리는 visualViewport 만 줆) → 키보드 높이 = 원래 창 높이 - 지금 보이는 영역 아래 끝
+  let lifted = null, kbPoll = 0;
   function keyboard() {
-    const vv = window.visualViewport; if (!vv) return;
-    const ae = document.activeElement, typing = ae && ae.matches && ae.matches("input, textarea, [contenteditable='true']");
-    const fig = typing && ae.closest(".fig"), inBar = fig && (TAGGED.has(ae) || [...TAGGED].some(k => k._phMode === "move" && k.parentElement === fig && k.contains(ae)));
-    const kb = Math.max(0, innerHeight - vv.height);   // 화면 px
-    if (typing && inBar && kb > 80) {
-      window.scrollTo(0, 0);
-      const lift = toPh(kb);   // 입력 바 아래 여백(디자인의 홈 표시줄 자리)째로 키보드 위에 붙인다
+    const ae = document.activeElement, typing = typingNow();
+    const fig = typing && ae.closest(".fig");
+    const vv = window.visualViewport, seen = vv ? vv.offsetTop + vv.height : innerHeight, kb = Math.max(0, (PH.baseVH || innerHeight) - seen);   // 화면 px
+    if (typing && fig && kb > 60) {
       const els = [...TAGGED].filter(k => k._phMode === "move" && k.parentElement === fig);
+      const mine = els.some(k => k === ae || k.contains(ae));
+      if (!mine) { unlift(); return; }
+      const lift = toPh(kb);   // 입력 바 아래 여백(디자인의 홈 표시줄 자리)째로 키보드 위에 붙인다
       if (!lifted || lifted.fig !== fig) { unlift(); lifted = { fig, els: els.map(k => ({ k, tf: k.style.transform || "", tr: k.style.transition })) }; }
-      lifted.els.forEach(o => { o.k.style.transition = "transform .25s cubic-bezier(.2,.8,.2,1)"; o.k.style.transform = `translate3d(0,${(-lift).toFixed(1)}px,0) ${o.tf}`; });
+      if (lifted.lift !== lift) { lifted.lift = lift; lifted.els.forEach(o => { o.k.style.transition = "transform .22s cubic-bezier(.2,.8,.2,1)"; o.k.style.transform = `translate3d(0,${(-lift).toFixed(1)}px,0) ${o.tf}`; }); }
     } else unlift();
   }
   function unlift() {
     if (!lifted) return; const l = lifted; lifted = null;
     l.els.forEach(o => { o.k.style.transform = o.tf; setTimeout(() => { o.k.style.transition = o.tr || ""; }, 260); });
   }
-  if (window.visualViewport) { visualViewport.addEventListener("resize", keyboard); visualViewport.addEventListener("scroll", () => { if (lifted) window.scrollTo(0, 0); keyboard(); }); }
-  addEventListener("focusin", () => setTimeout(keyboard, 50)); addEventListener("focusout", () => setTimeout(keyboard, 50));
+  function kbWatch() { clearInterval(kbPoll); let n = 0; kbPoll = setInterval(() => { keyboard(); if (++n > 25) clearInterval(kbPoll); }, 60); }   // 키보드 애니메이션 1.5초 동안 따라감
+  if (window.visualViewport) { visualViewport.addEventListener("resize", keyboard); visualViewport.addEventListener("scroll", keyboard); }
+  addEventListener("resize", keyboard);
+  addEventListener("focusin", kbWatch); addEventListener("focusout", kbWatch);
   addEventListener("scroll", () => { if (window.scrollY || window.scrollX) window.scrollTo(0, 0); }, { passive: true });
 
   // ---------- 위아래 띠 색: 앱 맨 위에 실제로 그려지는 색 (iOS 상태 표시줄 띠 · 홈 화면 앱 위아래 여백) ----------
@@ -338,6 +361,7 @@
   function paintBg() {
     if (typeof COMET === "undefined" || !phoneEl()) return;
     const c = colorAt(Math.round(innerWidth / 2), 1), hex = "#" + c.map(v => v.toString(16).padStart(2, "0")).join("");
+    const g = $("glow"); if (g) g.classList.toggle("ph-off", +getComputedStyle(g).opacity < .01);   // 가장자리 글로우가 투명한 동안은 그 무한 회전 애니메이션(매 프레임 다시 그림)을 끈다
     if (hex === lastBg) return; lastBg = hex;
     root.style.setProperty("--ph-bg", hex);
     const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", hex);

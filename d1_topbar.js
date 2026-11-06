@@ -23,9 +23,12 @@
 
   // 동작: 발산을 끝내고 홈에서 누른 것처럼 (시트는 sheet, 기록은 push)
   window.ACTIONS = window.ACTIONS || {};
+  // 11-06 진규: 시트(사이드바 M1 · 프로젝트 H5)는 발산을 끝내지 않고 발산 위에 바로 띄운다 — 시트는 이제 검정 화면보다 한 층 위(.scr.overlay z5)라 겹치지 않음.
+  //   메뉴를 누를 때마다 발산 ↔ 홈이 바뀌던 것. 기록(T1)처럼 화면을 넘기는 것만 발산을 먼저 끝낸다
   const go = ({ to }) => {
+    if (SCREENS.overlay.includes(to)) { COMET.show(to, "sheet"); return; }
     if (ACTIONS.converge) ACTIONS.converge();
-    COMET.after(700, () => COMET.show(to, SCREENS.overlay.includes(to) ? "sheet" : "push"));
+    COMET.after(700, () => COMET.show(to, "push"));
   };
   // ACTIONS 는 actions.js 가 만든 객체 — 그 뒤에 붙임 (이 파일은 actions.js 다음에 읽힘)
   if (typeof ACTIONS === "object") ACTIONS.d1Go = go;
