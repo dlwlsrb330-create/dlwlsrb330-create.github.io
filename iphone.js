@@ -373,8 +373,13 @@
   document.addEventListener("DOMContentLoaded", () => {
     document.body.appendChild(probe); fit(); tagAll(); touchIcon(); if (fpsOn) fpsShow();
     // 화면이 바뀔 때마다(나중에 붙는 조각까지) 다시 찾는다
-    new MutationObserver(() => requestAnimationFrame(() => { const id = COMET.cur(); if (id && COMET.SCR[id]) { tagFig(COMET.SCR[id].fig); shiftAll(); } paintBg(); })).observe(document.body, { attributes: true, attributeFilter: ["data-screen"] });
-    paintBg(); setInterval(paintBg, 150);   // 실행 장면 · 발산 연출처럼 화면 이름 없이 바뀌는 것도 따라감
+    new MutationObserver(() => requestAnimationFrame(() => { const id = COMET.cur(); if (id && COMET.SCR[id]) { tagFig(COMET.SCR[id].fig); shiftAll(); } paintBg(); if (PH.bgPoke) PH.bgPoke(); })).observe(document.body, { attributes: true, attributeFilter: ["data-screen"] });
+    paintBg();
+    // 띠 색은 화면이 바뀔 때(위 MutationObserver)와 실행 장면 · 발산 · 수렴처럼 화면 이름 없이 바뀌는 동안만 다시 잰다 — 0.15초마다 늘 재던 것은 매번 레이아웃을 강제로 계산해 아이폰에서 끊김
+    let bgUntil = performance.now() + 4000; PH.bgPoke = (ms = 800) => { bgUntil = Math.max(bgUntil, performance.now() + ms); };   // 화면이 바뀐 뒤 시트 막 · 전환 애니메이션이 끝날 때까지(0.8초) 따라감
+    (function bgLoop() { const home = $("home"), moving = (home && home.style.display !== "none") || (typeof COMET !== "undefined" && typeof T0 !== "undefined" && T0 !== null && typeof dmode === "function" && (!!dmode(COMET.tl()) || (typeof L !== "undefined" && COMET.tl() < L.ui[L.ui.length - 1] + L.uiLen + .5)));   // 실행 장면(검은 화면 → 홈 글)도 전환 중
+      if (moving) bgUntil = performance.now() + 1500;   // 전환이 끝난 뒤에도 1.5초는 더 (마지막 상태를 놓치지 않게)
+      const busy = performance.now() < bgUntil; if (busy) paintBg(); setTimeout(bgLoop, busy ? 120 : 400); })();   // 실행 장면 · 발산 연출처럼 화면 이름 없이 바뀌는 것도 따라감
   });
   fit();
 })();
