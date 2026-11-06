@@ -5,6 +5,8 @@
 // ④ 개발자 판(오른쪽 위 모서리 1초 길게 누르기) · FPS 숫자
 // COMET.build · APP5.init 바로 앞에서 읽히고, 화면이 다 만들어진 뒤(DOMContentLoaded) 일을 시작한다.
 (() => {
+  { const MO = window.MutationObserver;   // app5.js 1061줄 new MutationObserver(() => setTimeout(run, 60)) — 넘김 애니메이션 한가운데 글자 전부를 읽던 것을 넘김 뒤로
+    window.MutationObserver = class extends MO { constructor(cb) { super(/setTimeout\(run, 60\)/.test(String(cb)) ? (...a) => setTimeout(() => cb(...a), 400) : cb); } }; }
   const W = 390, H0 = 844, SB_H = 54;   // SB_H: 디자인의 가짜 상태 표시줄 높이 (statusbar.js #sbar)
   const root = document.documentElement, $ = (id) => document.getElementById(id);
   const PH = window.PH = { s: 1, h: H0, extra: 0, safeTop: 0, safeBottom: 0 };
@@ -483,7 +485,9 @@
       setTimeout(autoLaunch, 40);
     })();
     // 화면이 바뀔 때마다(나중에 붙는 조각까지) 다시 찾는다
-    new MutationObserver(() => requestAnimationFrame(() => { const id = COMET.cur(); if (id && COMET.SCR[id]) { tagFig(COMET.SCR[id].fig); shiftAll(); } paintBg(); if (PH.bgPoke) PH.bgPoke(); })).observe(document.body, { attributes: true, attributeFilter: ["data-screen"] });
+    // 화면이 바뀐 뒤 조각 크기 읽기 · 띠 색 재기는 넘김 애니메이션(.32초)이 끝난 뒤에 — 첫 프레임에 하면 화면 전체 배치를 강제로 계산해 넘어오는 순간이 툭 끊겼음
+    let afterT = 0;
+    new MutationObserver(() => { clearTimeout(afterT); afterT = setTimeout(() => { const id = COMET.cur(); if (id && COMET.SCR[id]) { tagFig(COMET.SCR[id].fig); shiftAll(); } paintBg(); if (PH.bgPoke) PH.bgPoke(); }, 380); }).observe(document.body, { attributes: true, attributeFilter: ["data-screen"] });
     paintBg();
     // 띠 색은 화면이 바뀔 때(위 MutationObserver)와 실행 장면 · 발산 · 수렴처럼 화면 이름 없이 바뀌는 동안만 다시 잰다 — 0.15초마다 늘 재던 것은 매번 레이아웃을 강제로 계산해 아이폰에서 끊김
     let bgUntil = performance.now() + 4000; PH.bgPoke = (ms = 800) => { bgUntil = Math.max(bgUntil, performance.now() + ms); };   // 화면이 바뀐 뒤 시트 막 · 전환 애니메이션이 끝날 때까지(0.8초) 따라감
