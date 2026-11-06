@@ -308,51 +308,49 @@
   addEventListener("focusin", () => setTimeout(keyboard, 50)); addEventListener("focusout", () => setTimeout(keyboard, 50));
   addEventListener("scroll", () => { if (window.scrollY || window.scrollX) window.scrollTo(0, 0); }, { passive: true });
 
-  // ---------- 위아래 띠 색: 지금 화면 바탕색 (사파리 상태 표시줄 · 주소창 띠, 홈 화면 앱의 위아래 여백) ----------
+  // ---------- 위아래 띠 색: 앱 맨 위에 실제로 그려지는 색 (iOS 상태 표시줄 띠 · 홈 화면 앱 위아래 여백) ----------
+  //   화면 이름으로 짐작하지 않는다(발산 화면은 11판부터 흰 화면, 실행 장면은 검정, 시트 위는 어두운 막). 맨 위 한 점에 겹친 층을 아래부터 합성한다:
+  //   바탕색 · 투명도 · 반전 필터(.scr.dark .fig) · 바탕화면(#home) · 커지는 검은 판(#zoom) · 실행 장면 검은 원(#mass, 흰 원 + difference)
   let lastBg = null;
+  const rgba = (str) => { const m = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/.exec(str || ""); return m ? [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]] : null; };
+  const phoneEl = () => $("phone");
+  function layerInfo(e) {   // e 와 조상(#phone 까지)의 반전 횟수 · 누적 투명도
+    let inv = 0, op = 1; for (let n = e; n && n !== document.body; n = n.parentElement) { const cs = getComputedStyle(n); if (/invert\(1\)/.test(cs.filter)) inv++; op *= parseFloat(cs.opacity); if (n.id === "phone") break; }
+    return { inv, op };
+  }
+  function colorAt(x, y) {
+    const home = $("home"), zoom = $("zoom"), mass = $("mass");
+    const shown = (e) => e && e.style.display !== "none" && getComputedStyle(e).display !== "none";
+    const covers = (e, round) => { const m = e.getBoundingClientRect(); if (m.width < 4) return false; if (!round) return x > m.left && x < m.right && y > m.top && y < m.bottom;
+      const dx = (x - m.left - m.width / 2) / (m.width / 2), dy = (y - m.top - m.height / 2) / (m.height / 2); return dx * dx + dy * dy < 1; };
+    if (shown(home) && +getComputedStyle(home).opacity > .5) return shown(zoom) && +getComputedStyle(zoom).opacity > .5 && covers(zoom, false) ? [11, 11, 11] : [42, 47, 58];   // #home 그라데이션 위 색 · #zoom var(--ink)
+    let c = [252, 252, 250];   // #phone var(--bg)
+    const els = document.elementsFromPoint(x, y);
+    for (let i = els.length - 1; i >= 0; i--) {
+      const e = els[i]; if (e === root || e === document.body || e.id === "phDev" || e.id === "phFps") continue;
+      let bg = rgba(getComputedStyle(e).backgroundColor); if (!bg || bg[3] === 0) continue;
+      const { inv, op } = layerInfo(e); if (inv % 2) bg = [255 - bg[0], 255 - bg[1], 255 - bg[2], bg[3]];
+      const a = bg[3] * op; c = [c[0] + (bg[0] - c[0]) * a, c[1] + (bg[1] - c[1]) * a, c[2] + (bg[2] - c[2]) * a];
+    }
+    const id = COMET.cur(); if (shown(mass) && mass.style.width && !(id && (isDark(id) || isOver(id))) && covers(mass, true)) c = [255 - c[0], 255 - c[1], 255 - c[2]];   // 검은 원(흰 원 + difference)이 덮는 동안 (검정 화면 · 시트는 원 위에 있음)
+    return c.map(Math.round);
+  }
   function paintBg() {
-    if (typeof COMET === "undefined") return;
-    const home = $("home"), id = COMET.cur();
-    let c = "#F7F6FA";
-    if (home && home.style.display !== "none") c = "#1d2028";                         // 실행 전 가짜 바탕화면
-    else if ((COMET.isDarkOn && COMET.isDarkOn()) || (id && isDark(id))) c = "#06050A";   // 발산(검정) 화면
-    else if (id && COMET.SCR[id]) { const b = getComputedStyle(COMET.SCR[id].fig).backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) c = b; }
-    if (c === lastBg) return; lastBg = c;
-    root.style.setProperty("--ph-bg", c);
-    let m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", c);
+    if (typeof COMET === "undefined" || !phoneEl()) return;
+    const c = colorAt(Math.round(innerWidth / 2), 1), hex = "#" + c.map(v => v.toString(16).padStart(2, "0")).join("");
+    if (hex === lastBg) return; lastBg = hex;
+    root.style.setProperty("--ph-bg", hex);
+    const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", hex);
   }
-
-  // ---------- 측정 판 (임시): 실기기가 주는 화면 값을 보여 줌. 탭하면 닫힘 ----------
-  function measurePanel() {
-    const d = document.createElement("div");
-    d.style.cssText = "position:fixed;z-index:2000;left:50%;top:45%;transform:translate(-50%,-50%);width:310px;padding:14px 16px;border-radius:14px;background:rgba(20,18,28,.94);color:#7CFC8A;font:600 13px/1.5 ui-monospace,Menlo,monospace;white-space:pre";
-    const p = document.createElement("div"); p.style.cssText = "position:fixed;left:0;top:0;width:0;height:0;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;visibility:hidden";
-    const box = document.createElement("div"); box.style.cssText = "position:fixed;left:0;right:0;top:0;bottom:0;visibility:hidden;pointer-events:none";
-    document.body.append(p, box);
-    const paint = () => { const c = getComputedStyle(p), vv = window.visualViewport, r = box.getBoundingClientRect(), ph = $("phone").getBoundingClientRect();
-      d.textContent = ["측정 (탭하면 닫힘)",
-        "standalone " + navigator.standalone + " / " + matchMedia("(display-mode: standalone)").matches,
-        "inner      " + innerWidth + " x " + innerHeight,
-        "screen     " + screen.width + " x " + screen.height,
-        "visual     " + (vv ? vv.width.toFixed(1) + " x " + vv.height.toFixed(1) + " @" + vv.offsetTop.toFixed(1) : "-"),
-        "fixed box  top " + r.top.toFixed(1) + " h " + r.height.toFixed(1),
-        "safe t/b   " + c.paddingTop + " / " + c.paddingBottom,
-        "phone      top " + ph.top.toFixed(1) + " bottom " + ph.bottom.toFixed(1),
-        "PH s/top   " + PH.s.toFixed(4) + " / " + PH.top,
-        "ver        ip1106h"].join("\n"); };
-    paint(); setTimeout(paint, 800); setTimeout(paint, 2500); addEventListener("resize", paint);
-    d.addEventListener("click", (e) => { e.stopPropagation(); d.remove(); }, true);
-    d.addEventListener("pointerdown", (e) => e.stopPropagation(), true);
-    document.body.appendChild(d);
-  }
+  PH.colorAt = colorAt;
 
   // ---------- 시작 ----------
   addEventListener("resize", fit); addEventListener("orientationchange", () => setTimeout(fit, 60));
   document.addEventListener("DOMContentLoaded", () => {
-    document.body.appendChild(probe); fit(); tagAll(); touchIcon(); if (fpsOn) fpsShow(); measurePanel();
+    document.body.appendChild(probe); fit(); tagAll(); touchIcon(); if (fpsOn) fpsShow();
     // 화면이 바뀔 때마다(나중에 붙는 조각까지) 다시 찾는다
     new MutationObserver(() => requestAnimationFrame(() => { const id = COMET.cur(); if (id && COMET.SCR[id]) { tagFig(COMET.SCR[id].fig); shiftAll(); } paintBg(); })).observe(document.body, { attributes: true, attributeFilter: ["data-screen"] });
-    paintBg(); setInterval(paintBg, 400);   // 실행 장면 · 발산 연출처럼 화면 이름 없이 바뀌는 것도 따라감
+    paintBg(); setInterval(paintBg, 150);   // 실행 장면 · 발산 연출처럼 화면 이름 없이 바뀌는 것도 따라감
   });
   fit();
 })();
